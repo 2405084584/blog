@@ -37,6 +37,16 @@ function normalizeEnvValue(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+export function getRuntimeDatabaseUrl(): string | undefined {
+  loadWebEnv();
+  return normalizeEnvValue(process.env.DATABASE_URL);
+}
+
+export function getPrismaDatabaseUrl(): string | undefined {
+  loadWebEnv();
+  return normalizeEnvValue(process.env.DIRECT_URL) ?? getRuntimeDatabaseUrl();
+}
+
 export function loadWebEnv(): void {
   const globalState = globalThis as Record<string, unknown>;
   if (globalState[loadedFlag]) {
