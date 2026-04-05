@@ -22,8 +22,15 @@ function buildFeedDescription(excerpt: string | null): string | undefined {
   return excerpt?.trim() || undefined;
 }
 
+function stripFeedLeadHtml(content: string): string {
+  return content.replace(
+    /^\s*<p\b[^>]*class=["'][^"']*\bfeed-lead\b[^"']*["'][^>]*>[\s\S]*?<\/p>\s*/i,
+    "",
+  );
+}
+
 function buildContentPreview(content: string): string | undefined {
-  const preview = stripHtmlToPlainText(content);
+  const preview = stripHtmlToPlainText(stripFeedLeadHtml(content));
   if (!preview) {
     return undefined;
   }
