@@ -19,7 +19,10 @@
     "check-types": "next typegen && tsc --noEmit",
     "gen-prisma": "prisma generate",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,css,md}\" --log-level warn",
-    "check": "turbo check-types lint format"
+    "check": "turbo check-types lint format",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.936.0",
@@ -145,6 +148,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/ua-parser-js": "^0.7.39",
     "@types/web-push": "^3.6.4",
+    "@vitest/coverage-v8": "^4.1.9",
     "autoprefixer": "^10.4.21",
     "babel-plugin-react-compiler": "^1.0.0",
     "chokidar-cli": "^3.0.0",
@@ -155,9 +159,11 @@
     "eslint-plugin-no-relative-import-paths": "^1.6.1",
     "eslint-plugin-react-compiler": "19.1.0-rc.2",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "happy-dom": "^20.10.6",
     "prisma": "^6.19.2",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
   }
 }
