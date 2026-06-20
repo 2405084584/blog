@@ -16,7 +16,11 @@ export default defineConfig({
       "**/.cache/**",
     ],
     coverage: {
-      include: ["src/lib/server/**/*.ts", "src/hooks/**/*.ts"],
+      include: [
+        "src/lib/server/**/*.ts",
+        "src/hooks/**/*.ts",
+        "src/actions/**/*.ts",
+      ],
       exclude: [
         "src/**/*.d.ts",
         "src/**/*.test.{ts,tsx}",
