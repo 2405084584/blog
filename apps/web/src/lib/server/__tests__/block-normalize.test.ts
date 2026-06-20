@@ -132,5 +132,86 @@ describe("block-normalize", () => {
       };
       expect(result.blocks[0]!).not.toHaveProperty("data");
     });
+
+    it("handles large number of blocks", () => {
+      const blocks = Array.from({ length: 100 }, (_, i) => ({
+        id: i * 10,
+        block: "text",
+        content: `Block ${i}`,
+      }));
+      const config = { blocks };
+      const result = normalizeBlockIds(config) as { blocks: { id: number }[] };
+
+      for (let i = 0; i < 100; i++) {
+        expect(result.blocks[i]!.id).toBe(i + 1);
+      }
+    });
+
+    it("handles blocks with null data field", () => {
+      const config = {
+        blocks: [{ id: 1, block: "text", data: null }],
+      };
+      const result = normalizeBlockIds(config) as {
+        blocks: Record<string, unknown>[];
+      };
+      expect(result.blocks[0]!).not.toHaveProperty("data");
+    });
+
+    it("handles blocks with undefined data field", () => {
+      const config = {
+        blocks: [{ id: 1, block: "text", data: undefined }],
+      };
+      const result = normalizeBlockIds(config) as {
+        blocks: Record<string, unknown>[];
+      };
+      expect(result.blocks[0]!).not.toHaveProperty("data");
+    });
+
+    it("handles config with extra nested properties", () => {
+      const config = {
+        title: "Page",
+        slug: "page-slug",
+        metadata: {
+          seo: { title: "SEO Title", description: "SEO Desc" },
+          custom: { key: "value" },
+        },
+        blocks: [{ id: 5, block: "hero", data: { x: 1 } }],
+      };
+      const result = normalizeBlockIds(config) as Record<string, unknown>;
+
+      expect(result.title).toBe("Page");
+      expect(result.slug).toBe("page-slug");
+      expect((result.metadata as any).seo.title).toBe("SEO Title");
+      expect(result.blocks).toHaveLength(1);
+      expect((result.blocks as any[])[0].id).toBe(1);
+    });
+
+    it("应保留 blocks 中除 data 外的所有属性", () => {
+      const config = {
+        blocks: [
+          {
+            id: 100,
+            block: "hero",
+            data: { remove: "me" },
+            title: "Keep",
+            description: "Also keep",
+            content: "Keep too",
+            customField: 42,
+          },
+        ],
+      };
+      const result = normalizeBlockIds(config) as {
+        blocks: Record<string, unknown>[];
+      };
+      const block = result.blocks[0]!;
+
+      expect(block.id).toBe(1);
+      expect(block.block).toBe("hero");
+      expect(block.title).toBe("Keep");
+      expect(block.description).toBe("Also keep");
+      expect(block.content).toBe("Keep too");
+      expect(block.customField).toBe(42);
+      expect(block).not.toHaveProperty("data");
+    });
   });
 });

@@ -236,4 +236,107 @@ Content here.`;
       expect(result).toContain("\n<p>Content</p>");
     });
   });
+
+  // =========================================================================
+  // 额外边界测试
+  // =========================================================================
+  describe("normalizeFeedText edge cases", () => {
+    it("handles nested HTML tags", () => {
+      expect(
+        normalizeFeedText("<div><p><strong>Nested</strong></p></div>"),
+      ).toBe("Nested");
+    });
+
+    it("handles self-closing tags", () => {
+      expect(normalizeFeedText("Line1<br/>Line2")).toBe("Line1 Line2");
+    });
+
+    it("handles tags with attributes", () => {
+      expect(normalizeFeedText('<a href="https://example.com">Link</a>')).toBe(
+        "Link",
+      );
+    });
+
+    it("handles multiple &nbsp; entities", () => {
+      expect(normalizeFeedText("a&nbsp;b&nbsp;c")).toBe("a b c");
+    });
+
+    it("handles mixed numeric and named entities", () => {
+      expect(normalizeFeedText("A&#38;B&amp;C")).toBe("A&B&C");
+    });
+
+    it("handles whitespace-only string", () => {
+      expect(normalizeFeedText("   ")).toBe("");
+    });
+
+    it("handles multiple consecutive spaces", () => {
+      expect(normalizeFeedText("a     b")).toBe("a b");
+    });
+  });
+
+  describe("stripLeadingMarkdownTitle edge cases", () => {
+    it("does not strip h2 heading", () => {
+      const markdown = `## My Title
+
+Content`;
+      expect(stripLeadingMarkdownTitle(markdown, "My Title")).toBe(markdown);
+    });
+
+    it("handles title with special characters", () => {
+      const markdown = `# Title with "quotes"
+
+Content`;
+      const result = stripLeadingMarkdownTitle(markdown, 'Title with "quotes"');
+      expect(result).toBe("Content");
+    });
+
+    it("handles markdown without any heading", () => {
+      const markdown = `Just plain text
+
+No heading here.`;
+      expect(stripLeadingMarkdownTitle(markdown, "Title")).toBe(markdown);
+    });
+  });
+
+  describe("stripLeadingHtmlTitle edge cases", () => {
+    it("handles h1 with class attribute", () => {
+      const html = `<h1 class="main-title">Title</h1><p>Content</p>`;
+      expect(stripLeadingHtmlTitle(html, "Title")).toBe("<p>Content</p>");
+    });
+
+    it("handles h1 spanning multiple lines", () => {
+      const html = `<h1>
+Title
+</h1>
+<p>Content</p>`;
+      expect(stripLeadingHtmlTitle(html, "Title")).toBe("<p>Content</p>");
+    });
+  });
+
+  describe("buildFeedLeadHtml edge cases", () => {
+    it("contains anchor tag with correct href", () => {
+      const result = buildFeedLeadHtml("https://example.com/posts/hello");
+      expect(result).toContain('<a href="https://example.com/posts/hello">');
+    });
+
+    it("contains the URL text", () => {
+      const result = buildFeedLeadHtml("https://example.com/posts/hello");
+      expect(result).toContain("https://example.com/posts/hello");
+    });
+  });
+
+  describe("prependFeedLead edge cases", () => {
+    it("handles whitespace-only content", () => {
+      const result = prependFeedLead("   ", "https://example.com/post");
+      expect(result).toContain("前往");
+      // Content with only whitespace should still have the lead prepended
+    });
+
+    it("handles very long content", () => {
+      const longContent = "<p>" + "a".repeat(10000) + "</p>";
+      const result = prependFeedLead(longContent, "https://example.com/post");
+      expect(result).toContain("前往");
+      expect(result).toContain(longContent);
+    });
+  });
 });

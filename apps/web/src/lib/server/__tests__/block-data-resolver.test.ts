@@ -181,5 +181,66 @@ describe("block-data-resolver", () => {
       expect(result!.title).toBe("My Page");
       expect(result!.metadata).toEqual({ author: "test" });
     });
+
+    it("当 blocks 为 undefined 时应返回原始 config", async () => {
+      const { resolveBlockData } = await import(
+        "@/lib/server/block-data-resolver"
+      );
+
+      const config = { title: "No blocks config" };
+      const result = await resolveBlockData(config as any);
+
+      expect(result).toEqual(config);
+      expect(mockResolveSingleBlockWithCache).not.toHaveBeenCalled();
+    });
+
+    it("当传入 disableCache 为 false 时应正确传递", async () => {
+      const { resolveBlockData } = await import(
+        "@/lib/server/block-data-resolver"
+      );
+
+      const blocks = [{ id: 1, block: "hero" as const }];
+      const config = { blocks };
+
+      mockResolveSingleBlockWithCache.mockResolvedValue({
+        id: 1,
+        block: "hero",
+      });
+
+      await resolveBlockData(config as any, undefined, {
+        pageId: "test",
+        disableCache: false,
+      });
+
+      expect(mockResolveSingleBlockWithCache).toHaveBeenCalledWith({
+        block: blocks[0],
+        pageId: "test",
+        pageContext: {},
+        disableCache: false,
+      });
+    });
+
+    it("应能处理多个 blocks 的并行解析", async () => {
+      const { resolveBlockData } = await import(
+        "@/lib/server/block-data-resolver"
+      );
+
+      const blocks = [
+        { id: 1, block: "hero" as const },
+        { id: 2, block: "text" as const },
+        { id: 3, block: "image" as const },
+      ];
+      const config = { blocks };
+
+      mockResolveSingleBlockWithCache
+        .mockResolvedValueOnce({ id: 1, block: "hero", resolved: true })
+        .mockResolvedValueOnce({ id: 2, block: "text", resolved: true })
+        .mockResolvedValueOnce({ id: 3, block: "image", resolved: true });
+
+      const result = await resolveBlockData(config as any);
+
+      expect(result!.blocks).toHaveLength(3);
+      expect(mockResolveSingleBlockWithCache).toHaveBeenCalledTimes(3);
+    });
   });
 });

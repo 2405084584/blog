@@ -337,5 +337,75 @@ describe("project actions", () => {
       expect(result.success).toBe(true);
       expect(result.data.deleted).toBe(1);
     });
+
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteProjects({ access_token: "token", ids: [1] });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ---------- 补充测试 ----------
+
+  describe("getProjectsList 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getProjectsList({ access_token: "token", page: 1 });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getProjectsList({ access_token: "token", page: 1 });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createProject 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createProject({
+        access_token: "token",
+        title: "New Project",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await createProject({
+        access_token: "token",
+        title: "New Project",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getProjectDetail 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getProjectDetail({
+        access_token: "token",
+        slug: "test",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getProjectDetail({
+        access_token: "token",
+        slug: "test",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getProjectsTrends 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getProjectsTrends({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
   });
 });

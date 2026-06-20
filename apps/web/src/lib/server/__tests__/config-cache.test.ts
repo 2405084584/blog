@@ -303,5 +303,120 @@ describe("config-cache", () => {
 
       expect(result["site.title"].updatedAt).toBeInstanceOf(Date);
     });
+
+    it("handles multiple configs", async () => {
+      mockPrisma.config.findMany.mockResolvedValue([
+        { key: "site.title", value: "Title", updatedAt: new Date() },
+        {
+          key: "site.url",
+          value: "https://example.com",
+          updatedAt: new Date(),
+        },
+        { key: "seo.description", value: "A CMS", updatedAt: new Date() },
+      ]);
+
+      const result = await getAllConfigs();
+
+      expect(Object.keys(result)).toHaveLength(3);
+      expect(result["site.title"].value).toBe("Title");
+      expect(result["site.url"].value).toBe("https://example.com");
+      expect(result["seo.description"].value).toBe("A CMS");
+    });
+  });
+
+  // =========================================================================
+  // getConfig - 补充测试
+  // =========================================================================
+  describe("getConfig - 补充测试", () => {
+    it("返回对象配置的 default 字段值", async () => {
+      mockPrisma.config.findUnique.mockResolvedValue({
+        key: "theme.color",
+        value: { default: "blue", dark: "navy" },
+        updatedAt: new Date(),
+      });
+
+      const result = await getConfig("theme.color");
+
+      expect(result).toBe("blue");
+    });
+
+    it("返回指定字段的值", async () => {
+      mockPrisma.config.findUnique.mockResolvedValue({
+        key: "theme.color",
+        value: { default: "blue", dark: "navy" },
+        updatedAt: new Date(),
+      });
+
+      const result = await getConfig("theme.color", "dark");
+
+      expect(result).toBe("navy");
+    });
+
+    it("返回整个对象当没有 default 属性", async () => {
+      mockPrisma.config.findUnique.mockResolvedValue({
+        key: "theme.color",
+        value: { primary: "red", secondary: "blue" },
+        updatedAt: new Date(),
+      });
+
+      const result = await getConfig("theme.color");
+
+      expect(result).toEqual({ primary: "red", secondary: "blue" });
+    });
+
+    it("返回 undefined 当字段不存在", async () => {
+      mockPrisma.config.findUnique.mockResolvedValue({
+        key: "theme.color",
+        value: { default: "blue" },
+        updatedAt: new Date(),
+      });
+
+      const result = getConfig("theme.color", "nonexistent" as any);
+
+      // 字段不存在时应返回 undefined
+      expect(await result).toBeUndefined();
+    });
+  });
+
+  // =========================================================================
+  // getRawConfig - 补充测试
+  // =========================================================================
+  describe("getRawConfig - 补充测试", () => {
+    it("返回 null 当数据库查询失败", async () => {
+      mockPrisma.config.findUnique.mockRejectedValue(
+        new Error("Connection timeout"),
+      );
+
+      const result = await getRawConfig("site.title");
+
+      expect(result).toBeNull();
+    });
+
+    it("正确映射 updatedAt 为 Date 对象", async () => {
+      const date = new Date("2024-03-15T12:00:00Z");
+      mockPrisma.config.findUnique.mockResolvedValue({
+        key: "site.title",
+        value: "Test",
+        updatedAt: date,
+      });
+
+      const result = await getRawConfig("site.title");
+
+      expect(result?.updatedAt).toBeInstanceOf(Date);
+      expect(result?.updatedAt).toEqual(date);
+    });
+
+    it("description 始终为 undefined", async () => {
+      mockPrisma.config.findUnique.mockResolvedValue({
+        key: "site.title",
+        value: "Test",
+        description: "This should be removed",
+        updatedAt: new Date(),
+      });
+
+      const result = await getRawConfig("site.title");
+
+      expect(result?.description).toBeUndefined();
+    });
   });
 });

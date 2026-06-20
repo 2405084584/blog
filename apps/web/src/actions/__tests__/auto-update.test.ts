@@ -95,12 +95,9 @@ vi.mock("node:child_process", async (importOriginal) => {
   };
 });
 
-vi.mock("node:fs/promises", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:fs/promises")>();
+vi.mock("node:fs/promises", () => {
   return {
-    ...actual,
     default: {
-      ...actual.default,
       readFile: vi.fn(async () => JSON.stringify({ version: "5.1.2" })),
     },
     readFile: vi.fn(async () => JSON.stringify({ version: "5.1.2" })),

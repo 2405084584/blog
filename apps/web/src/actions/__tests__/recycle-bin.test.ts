@@ -293,5 +293,89 @@ describe("recycle-bin actions", () => {
       expect(result.success).toBe(true);
       expect(result.data.deleted).toBe(0);
     });
+
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await clearRecycleBin({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ---------- 补充测试 ----------
+
+  describe("getRecycleBinList 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getRecycleBinList({
+        access_token: "token",
+        page: 1,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getRecycleBinList({
+        access_token: "token",
+        page: 1,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("成功获取回收站列表", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      for (const model of Object.values(mockPrisma)) {
+        if (typeof model === "object") {
+          for (const method of Object.values(model)) {
+            if (typeof method === "function") {
+              (method as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+            }
+          }
+        }
+      }
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+
+      const result = await getRecycleBinList({
+        access_token: "token",
+        page: 1,
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getRecycleBinStats 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getRecycleBinStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getRecycleBinStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("restoreRecycleBinItems 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await restoreRecycleBinItems({
+        access_token: "token",
+        items: [{ resourceType: "POST", id: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("purgeRecycleBinItems 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await purgeRecycleBinItems({
+        access_token: "token",
+        items: [{ resourceType: "POST", id: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
   });
 });

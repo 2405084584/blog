@@ -482,3 +482,64 @@ describe("readResponseBufferWithLimit", () => {
     expect(buffer.toString()).toBe("no content length header");
   });
 });
+
+// ============================================================================
+// assertPublicHttpUrl - 补充测试
+// ============================================================================
+describe("assertPublicHttpUrl - 补充测试", () => {
+  beforeEach(() => {
+    mockLookup.mockReset();
+  });
+
+  describe("空主机名", () => {
+    it("拒绝空主机名的 URL", async () => {
+      // http:// 会被解析为无效 URL
+      await expect(assertPublicHttpUrl("http://")).rejects.toThrow();
+    });
+  });
+
+  describe("IPv4 保留网段补充", () => {
+    it("拒绝 100.64.0.0（运营商级 NAT 下界精确值）", async () => {
+      await expect(assertPublicHttpUrl("http://100.64.0.0")).rejects.toThrow(
+        "不允许访问内网或保留地址",
+      );
+    });
+
+    it("拒绝 100.127.0.0（运营商级 NAT 上界精确值）", async () => {
+      await expect(assertPublicHttpUrl("http://100.127.0.0")).rejects.toThrow(
+        "不允许访问内网或保留地址",
+      );
+    });
+
+    it("接受 100.128.0.1（运营商级 NAT 之外）", async () => {
+      const result = await assertPublicHttpUrl("http://100.128.0.1");
+      expect(result.resolvedIp).toBe("100.128.0.1");
+    });
+  });
+
+  describe("DNS 解析补充", () => {
+    it("解析结果包含 IPv6 内网地址时拒绝", async () => {
+      mockLookup.mockResolvedValue([{ address: "fc00::1", family: 6 }]);
+      await expect(
+        assertPublicHttpUrl("http://internal-v6.example.com"),
+      ).rejects.toThrow("目标地址解析到内网或保留地址");
+    });
+
+    it("IPv4 和 IPv6 混合结果", async () => {
+      mockLookup.mockResolvedValue([
+        { address: "2606:4700::1", family: 6 },
+        { address: "93.184.216.34", family: 4 },
+      ]);
+      const result = await assertPublicHttpUrl("http://dual-stack.example.com");
+      expect(result.resolvedIp).toBe("2606:4700::1");
+    });
+  });
+
+  describe("协议补充", () => {
+    it("拒绝 data 协议", async () => {
+      await expect(
+        assertPublicHttpUrl("data:text/html,<h1>test</h1>"),
+      ).rejects.toThrow();
+    });
+  });
+});

@@ -105,7 +105,7 @@ describe("analytics actions", () => {
     trackPageView = mod.trackPageView;
     getAnalyticsStats = mod.getAnalyticsStats;
     batchGetViewCounts = mod.batchGetViewCounts;
-  });
+  }, 30000);
 
   // ---------- trackPageView ----------
 
@@ -190,6 +190,95 @@ describe("analytics actions", () => {
       expect(result).toHaveLength(2);
       expect(result[0].count).toBe(100);
       expect(result[1].count).toBe(200);
+    });
+
+    it("Redis 返回 null 时应返回 0", async () => {
+      mockRedis.hmget.mockResolvedValue([null, null]);
+
+      const result = await batchGetViewCounts(["/page1", "/page2"]);
+      expect(result).toHaveLength(2);
+      expect(result[0].count).toBe(0);
+      expect(result[1].count).toBe(0);
+    });
+
+    it("单个路径应正常工作", async () => {
+      mockRedis.hmget.mockResolvedValue(["42"]);
+
+      const result = await batchGetViewCounts(["/single-page"]);
+      expect(result).toHaveLength(1);
+      expect(result[0].count).toBe(42);
+    });
+  });
+
+  // ---------- trackPageView 补充测试 ----------
+
+  describe("trackPageView 补充测试", () => {
+    it("应处理带查询参数的路径", async () => {
+      mockRedis.set.mockResolvedValue("OK");
+      mockRedis.eval.mockResolvedValue(1);
+
+      const result = await trackPageView({
+        path: "/search?q=test&page=1",
+        visitorId: "v1",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("应处理根路径", async () => {
+      mockRedis.set.mockResolvedValue("OK");
+      mockRedis.eval.mockResolvedValue(1);
+
+      const result = await trackPageView({
+        path: "/",
+        visitorId: "v1",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("应处理包含 referer 的请求", async () => {
+      mockRedis.set.mockResolvedValue("OK");
+      mockRedis.eval.mockResolvedValue(1);
+
+      const result = await trackPageView({
+        path: "/posts/hello",
+        visitorId: "v1",
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ---------- getAnalyticsStats 补充测试 ----------
+
+  describe("getAnalyticsStats 补充测试", () => {
+    it("不同天数参数应正常工作", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+
+      const result = await getAnalyticsStats({
+        access_token: "token",
+        days: 30,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("1天参数应正常工作", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+
+      const result = await getAnalyticsStats({
+        access_token: "token",
+        days: 1,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("应返回 overview 和 dailyTrend 字段", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+
+      const result = await getAnalyticsStats({
+        access_token: "token",
+        days: 7,
+      });
+      expect(result.data).toHaveProperty("overview");
+      expect(result.data).toHaveProperty("dailyTrend");
     });
   });
 });

@@ -71,6 +71,25 @@ vi.mock("os", async (importOriginal) => {
   };
 });
 
+vi.mock("child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("child_process")>();
+  return {
+    ...actual,
+    exec: vi.fn(
+      (
+        _cmd: string,
+        _opts: unknown,
+        cb: (err: null, result: { stdout: string; stderr: string }) => void,
+      ) => {
+        if (typeof _opts === "function") {
+          cb = _opts as unknown as typeof cb;
+        }
+        cb(null, { stdout: "1024 512 512\n", stderr: "" });
+      },
+    ),
+  };
+});
+
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";

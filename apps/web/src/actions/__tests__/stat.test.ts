@@ -227,4 +227,133 @@ describe("stat actions", () => {
       expect(result.data.total.activeUsers).toBe(2);
     });
   });
+
+  // ---------- 补充测试 ----------
+
+  describe("getUsersStats 补充测试", () => {
+    it("应返回正确的活跃用户统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.$queryRaw.mockResolvedValue([
+        {
+          role: "USER",
+          total_count: BigInt(200),
+          active_1d: BigInt(20),
+          active_7d: BigInt(100),
+          active_30d: BigInt(150),
+          new_1d: BigInt(5),
+          new_7d: BigInt(10),
+          new_30d: BigInt(30),
+        },
+      ]);
+
+      const result = await getUsersStats(adminParams);
+      expect(result.success).toBe(true);
+      expect(result.data.total.total).toBe(200);
+    });
+
+    it("应处理空结果", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.$queryRaw.mockResolvedValue([]);
+
+      const result = await getUsersStats(adminParams);
+      expect(result.success).toBe(true);
+      expect(result.data.total.total).toBe(0);
+    });
+  });
+
+  describe("getPostsStats 补充测试", () => {
+    it("应返回 published 和 draft 统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.$queryRaw.mockResolvedValue([
+        {
+          status: "PUBLISHED",
+          total_count: BigInt(100),
+          new_7d: BigInt(5),
+          new_30d: BigInt(20),
+          new_1y: BigInt(80),
+        },
+      ]);
+      mockPrisma.post.findFirst.mockResolvedValue(null);
+
+      const result = await getPostsStats(adminParams);
+      expect(result.success).toBe(true);
+      expect(result.data.total.published).toBe(100);
+    });
+
+    it("应处理数据库查询失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.$queryRaw.mockRejectedValue(new Error("DB error"));
+
+      const result = await getPostsStats(adminParams);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getTagsStats 补充测试", () => {
+    it("无标签时应返回 0", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.tag.count.mockResolvedValue(0);
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([{ count: BigInt(0) }])
+        .mockResolvedValueOnce([
+          { new_7d: BigInt(0), new_30d: BigInt(0), new_1y: BigInt(0) },
+        ]);
+
+      const result = await getTagsStats(adminParams);
+      expect(result.success).toBe(true);
+      expect(result.data.total.total).toBe(0);
+    });
+
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getTagsStats(adminParams);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPagesStats 补充测试", () => {
+    it("无页面时应返回 0", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.page.count.mockResolvedValue(0);
+      mockPrisma.page.groupBy.mockResolvedValue([]);
+
+      const result = await getPagesStats(adminParams);
+      expect(result.success).toBe(true);
+      expect(result.data.total.total).toBe(0);
+    });
+
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getPagesStats(adminParams);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAuditStats 补充测试", () => {
+    it("无审计日志时应返回 0", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.auditLog.count.mockResolvedValue(0);
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      mockPrisma.$queryRaw.mockResolvedValue([
+        { last_1d: BigInt(0), last_7d: BigInt(0), last_30d: BigInt(0) },
+      ]);
+
+      const result = await getAuditStats(adminParams);
+      expect(result.success).toBe(true);
+      expect(result.data.total.logs).toBe(0);
+      expect(result.data.total.activeUsers).toBe(0);
+    });
+
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getAuditStats(adminParams);
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getAuditStats(adminParams);
+      expect(result.success).toBe(false);
+    });
+  });
 });

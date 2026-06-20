@@ -196,5 +196,73 @@ describe("setting actions", () => {
         expect.objectContaining({ success: false, status: 401 }),
       );
     });
+
+    it("速率限制触发时返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+
+      const { updateSettings } = await import("@/actions/setting");
+      const result = await updateSettings({
+        access_token: "valid-token",
+        settings: [{ key: "site.title", value: "test" }],
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      const { getConfigDefinition } = await import("@/data/default-configs");
+      vi.mocked(getConfigDefinition).mockReturnValue({
+        type: "string",
+        default: "old",
+      } as never);
+      vi.mocked(prisma.$transaction).mockRejectedValue(new Error("DB error"));
+
+      const { updateSettings } = await import("@/actions/setting");
+      const result = await updateSettings({
+        access_token: "valid-token",
+        settings: [{ key: "site.title", value: "New Title" }],
+      });
+
+      // 可能返回 400（验证错误）或 500（服务器错误），但必定失败
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("getSettings 补充测试", () => {
+    it("返回空配置列表时应正常工作", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.config.findMany).mockResolvedValue([] as never);
+
+      const { getSettings } = await import("@/actions/setting");
+      const result = await getSettings({ access_token: "valid-token" });
+
+      expect(result).toEqual(expect.objectContaining({ success: true }));
+    });
+
+    it("返回多个配置项", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.config.findMany).mockResolvedValue([
+        {
+          key: "site.title",
+          value: { default: "Title" },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          key: "site.url",
+          value: { default: "https://example.com" },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as never);
+
+      const { getSettings } = await import("@/actions/setting");
+      const result = await getSettings({ access_token: "valid-token" });
+
+      expect(result).toEqual(expect.objectContaining({ success: true }));
+    });
   });
 });

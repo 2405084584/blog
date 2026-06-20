@@ -365,5 +365,55 @@ describe("cloud actions", () => {
         expect.objectContaining({ success: false, status: 401 }),
       );
     });
+
+    it("速率限制时返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+
+      const { getCloudTrends } = await import("@/actions/cloud");
+      const result = await getCloudTrends({
+        access_token: "valid-token",
+        days: 30,
+        count: 60,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+  });
+
+  // ==========================================================================
+  // 补充测试
+  // ==========================================================================
+  describe("getCloudConfig 补充测试", () => {
+    it("速率限制时返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+
+      const { getCloudConfig } = await import("@/actions/cloud");
+      const result = await getCloudConfig({
+        access_token: "valid-token",
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+  });
+
+  describe("getCloudHistory 补充测试", () => {
+    it("速率限制时返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+
+      const { getCloudHistory } = await import("@/actions/cloud");
+      const result = await getCloudHistory({
+        access_token: "valid-token",
+        page: 1,
+        pageSize: 25,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
   });
 });

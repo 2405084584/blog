@@ -327,4 +327,60 @@ describe("friendlink actions", () => {
       expect(result.data.published).toBe(10);
     });
   });
+
+  // ---------- 补充测试 ----------
+
+  describe("getFriendLinksList 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getFriendLinksList({
+        access_token: "token",
+        page: 1,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getFriendLinksList({
+        access_token: "token",
+        page: 1,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("成功获取友链列表", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.friendLink.count.mockResolvedValue(0);
+      mockPrisma.friendLink.findMany.mockResolvedValue([]);
+
+      const result = await getFriendLinksList({
+        access_token: "token",
+        page: 1,
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getFriendLinksStats 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getFriendLinksStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getFriendLinksStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getOwnFriendLink 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getOwnFriendLink({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
 });

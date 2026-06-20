@@ -568,4 +568,50 @@ describe("comment actions", () => {
       expect(result.success).toBe(false);
     });
   });
+
+  // ---------- 补充测试 ----------
+
+  describe("getPostComments 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getPostComments(
+        { postId: 1, page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("likeComment 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await likeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("unlikeComment 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await unlikeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
 });

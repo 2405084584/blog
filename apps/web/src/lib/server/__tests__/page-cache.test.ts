@@ -849,5 +849,450 @@ describe("page-cache", () => {
       // 没有匹配的页面模板时返回 null
       expect(result).toBeNull();
     });
+
+    it("handles multi-segment paths", async () => {
+      mockPrisma.page.findUnique.mockResolvedValue(null);
+
+      const result = await getMatchingPage(["blog", "2024", "my-post"]);
+
+      expect(result).toBeNull();
+    });
+
+    it("handles single segment path", async () => {
+      const dbPage = createMockDbPage({
+        id: "single-page",
+        slug: "/about",
+        title: "About",
+        status: "ACTIVE",
+        deletedAt: null,
+      });
+      mockPrisma.page.findUnique.mockImplementation(async (args: any) => {
+        if (args?.where?.slug === "/about") {
+          return dbPage;
+        }
+        return null;
+      });
+
+      const result = await getMatchingPage(["about"]);
+
+      expect(result).not.toBeNull();
+      expect(result?.page.slug).toBe("/about");
+    });
+  });
+
+  // =========================================================================
+  // getAllActivePages
+  // =========================================================================
+  describe("getAllActivePages", () => {
+    it("returns active pages from database", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "page-1",
+          slug: "/active",
+          title: "Active Page",
+          status: "ACTIVE",
+          deletedAt: null,
+        }),
+        createMockDbPage({
+          id: "page-2",
+          slug: "/suspended",
+          title: "Suspended Page",
+          status: "SUSPENDED",
+          deletedAt: null,
+        }),
+      ]);
+
+      const { getAllActivePages } = await import("@/lib/server/page-cache");
+      const result = await getAllActivePages();
+
+      expect(Object.keys(result)).toContain("/active");
+      expect(Object.keys(result)).not.toContain("/suspended");
+    });
+
+    it("excludes deleted pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "page-1",
+          slug: "/active",
+          title: "Active",
+          status: "ACTIVE",
+          deletedAt: null,
+        }),
+        createMockDbPage({
+          id: "page-2",
+          slug: "/deleted",
+          title: "Deleted",
+          status: "ACTIVE",
+          deletedAt: new Date(),
+        }),
+      ]);
+
+      const { getAllActivePages } = await import("@/lib/server/page-cache");
+      const result = await getAllActivePages();
+
+      expect(Object.keys(result)).toContain("/active");
+      expect(Object.keys(result)).not.toContain("/deleted");
+    });
+
+    it("returns empty object when database fails", async () => {
+      mockPrisma.page.findMany.mockRejectedValue(new Error("DB error"));
+
+      const { getAllActivePages } = await import("@/lib/server/page-cache");
+      const result = await getAllActivePages();
+
+      expect(result).toEqual({});
+    });
+  });
+
+  // =========================================================================
+  // getPagesByStatus
+  // =========================================================================
+  describe("getPagesByStatus", () => {
+    it("returns only ACTIVE pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/a",
+          status: "ACTIVE",
+          deletedAt: null,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/b",
+          status: "SUSPENDED",
+          deletedAt: null,
+        }),
+        createMockDbPage({
+          id: "3",
+          slug: "/c",
+          status: "ACTIVE",
+          deletedAt: null,
+        }),
+      ]);
+
+      const { getPagesByStatus } = await import("@/lib/server/page-cache");
+      const result = await getPagesByStatus("ACTIVE");
+
+      expect(Object.keys(result)).toHaveLength(2);
+      expect(Object.keys(result)).toContain("/a");
+      expect(Object.keys(result)).toContain("/c");
+    });
+
+    it("returns only SUSPENDED pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/a",
+          status: "ACTIVE",
+          deletedAt: null,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/b",
+          status: "SUSPENDED",
+          deletedAt: null,
+        }),
+      ]);
+
+      const { getPagesByStatus } = await import("@/lib/server/page-cache");
+      const result = await getPagesByStatus("SUSPENDED");
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(Object.keys(result)).toContain("/b");
+    });
+
+    it("excludes deleted pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/a",
+          status: "ACTIVE",
+          deletedAt: null,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/b",
+          status: "ACTIVE",
+          deletedAt: new Date(),
+        }),
+      ]);
+
+      const { getPagesByStatus } = await import("@/lib/server/page-cache");
+      const result = await getPagesByStatus("ACTIVE");
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(Object.keys(result)).toContain("/a");
+    });
+  });
+
+  // =========================================================================
+  // getSystemPages
+  // =========================================================================
+  describe("getSystemPages", () => {
+    it("returns only system pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/sys",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: true,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/user",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+        }),
+      ]);
+
+      const { getSystemPages } = await import("@/lib/server/page-cache");
+      const result = await getSystemPages();
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(Object.keys(result)).toContain("/sys");
+    });
+
+    it("excludes suspended system pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/sys-active",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: true,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/sys-suspended",
+          status: "SUSPENDED",
+          deletedAt: null,
+          isSystemPage: true,
+        }),
+      ]);
+
+      const { getSystemPages } = await import("@/lib/server/page-cache");
+      const result = await getSystemPages();
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(Object.keys(result)).toContain("/sys-active");
+    });
+  });
+
+  // =========================================================================
+  // getPagesByUser
+  // =========================================================================
+  describe("getPagesByUser", () => {
+    it("returns pages for specific user", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/user1-page",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+          userUid: 1,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/user2-page",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+          userUid: 2,
+        }),
+        createMockDbPage({
+          id: "3",
+          slug: "/user1-another",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+          userUid: 1,
+        }),
+      ]);
+
+      const { getPagesByUser } = await import("@/lib/server/page-cache");
+      const result = await getPagesByUser(1);
+
+      expect(Object.keys(result)).toHaveLength(2);
+      expect(Object.keys(result)).toContain("/user1-page");
+      expect(Object.keys(result)).toContain("/user1-another");
+    });
+
+    it("excludes system pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/user-page",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+          userUid: 1,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/system-page",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: true,
+          userUid: 1,
+        }),
+      ]);
+
+      const { getPagesByUser } = await import("@/lib/server/page-cache");
+      const result = await getPagesByUser(1);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(Object.keys(result)).toContain("/user-page");
+    });
+
+    it("excludes deleted pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/active",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+          userUid: 1,
+        }),
+        createMockDbPage({
+          id: "2",
+          slug: "/deleted",
+          status: "ACTIVE",
+          deletedAt: new Date(),
+          isSystemPage: false,
+          userUid: 1,
+        }),
+      ]);
+
+      const { getPagesByUser } = await import("@/lib/server/page-cache");
+      const result = await getPagesByUser(1);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(Object.keys(result)).toContain("/active");
+    });
+
+    it("returns empty object when user has no pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({
+          id: "1",
+          slug: "/other",
+          status: "ACTIVE",
+          deletedAt: null,
+          isSystemPage: false,
+          userUid: 999,
+        }),
+      ]);
+
+      const { getPagesByUser } = await import("@/lib/server/page-cache");
+      const result = await getPagesByUser(1);
+
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+  });
+
+  // =========================================================================
+  // getMainRouteStaticParams
+  // =========================================================================
+  describe("getMainRouteStaticParams", () => {
+    it("returns root slug when no pages exist", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([]);
+
+      const { getMainRouteStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteStaticParams();
+
+      expect(result).toEqual([{ slug: [] }]);
+    });
+
+    it("returns static params for simple pages", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({ id: "1", slug: "/about", config: null }),
+      ]);
+
+      const { getMainRouteStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteStaticParams();
+
+      const slugs = result.map((p) => p.slug.join("/"));
+      expect(slugs).toContain("about");
+    });
+
+    it("handles empty slug (root page)", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({ id: "1", slug: "/", config: null }),
+      ]);
+
+      const { getMainRouteStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteStaticParams();
+
+      expect(result.some((p) => p.slug.length === 0)).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // getMainRouteTopLevelStaticParams
+  // =========================================================================
+  describe("getMainRouteTopLevelStaticParams", () => {
+    it("returns root slug when no pages exist", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([]);
+
+      const { getMainRouteTopLevelStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteTopLevelStaticParams();
+
+      expect(result).toEqual([{ slug: [] }]);
+    });
+
+    it("includes top-level page paths", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({ id: "1", slug: "/about" }),
+        createMockDbPage({ id: "2", slug: "/blog" }),
+      ]);
+
+      const { getMainRouteTopLevelStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteTopLevelStaticParams();
+
+      const slugs = result.map((p) => p.slug.join("/"));
+      expect(slugs).toContain("about");
+      expect(slugs).toContain("blog");
+    });
+
+    it("excludes deep nested paths", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({ id: "1", slug: "/a/b/c" }),
+      ]);
+
+      const { getMainRouteTopLevelStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteTopLevelStaticParams();
+
+      const slugs = result.map((p) => p.slug.join("/"));
+      expect(slugs).not.toContain("a/b/c");
+    });
+
+    it("includes paged template base paths", async () => {
+      mockPrisma.page.findMany.mockResolvedValue([
+        createMockDbPage({ id: "1", slug: "/posts/page/:page" }),
+      ]);
+
+      const { getMainRouteTopLevelStaticParams } = await import(
+        "@/lib/server/page-cache"
+      );
+      const result = await getMainRouteTopLevelStaticParams();
+
+      const slugs = result.map((p) => p.slug.join("/"));
+      expect(slugs).toContain("posts");
+    });
   });
 });

@@ -16,6 +16,9 @@ export default defineConfig({
       "**/.cache/**",
     ],
     coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary"],
+      reportOnFailure: true,
       include: [
         "src/lib/server/**/*.ts",
         "src/hooks/**/*.ts",

@@ -870,5 +870,115 @@ describe("seo utilities", () => {
       const result = buildMainMenuJsonLdBreadcrumb(menus);
       expect(result[1]!.name).toBe("About");
     });
+
+    it("uses page.slug over link", () => {
+      const menus = [
+        {
+          name: "Page",
+          slug: null,
+          link: "/old-link",
+          page: { slug: "new-slug" },
+        },
+      ];
+      const result = buildMainMenuJsonLdBreadcrumb(menus);
+      expect(result[1]!.item).toBe("/new-slug");
+    });
+
+    it("normalizes link paths without leading slash", () => {
+      const menus = [{ name: "Blog", slug: null, link: "blog", page: null }];
+      const result = buildMainMenuJsonLdBreadcrumb(menus);
+      expect(result[1]!.item).toBe("/blog");
+    });
+  });
+
+  // =========================================================================
+  // 额外边界测试
+  // =========================================================================
+  describe("edge cases", () => {
+    describe("normalizeCanonicalPath", () => {
+      it("handles only slashes", () => {
+        expect(normalizeCanonicalPath("///")).toBe("/");
+      });
+
+      it("handles /page/10 (not /page/1)", () => {
+        expect(normalizeCanonicalPath("/posts/page/10")).toBe("/posts/page/10");
+      });
+
+      it("handles mixed case /Page/1 (case-insensitive removal)", () => {
+        // normalizeCanonicalPath removes /page/1 case-insensitively
+        expect(normalizeCanonicalPath("/posts/Page/1")).toBe("/posts");
+      });
+    });
+
+    describe("normalizePathname", () => {
+      it("handles https URL with port", () => {
+        const result = normalizePathname("https://example.com:8080/path");
+        expect(result).toBe("https://example.com:8080/path");
+      });
+
+      it("handles http URL", () => {
+        const result = normalizePathname("http://example.com/path");
+        expect(result).toBe("http://example.com/path");
+      });
+
+      it("handles URL with query string (query preserved in normalized path)", () => {
+        const result = normalizePathname("https://example.com/path?q=test");
+        // normalizePathname only normalizes the pathname portion
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe("parseTitleTemplate edge cases", () => {
+      it("handles template with only title", () => {
+        expect(parseTitleTemplate("{title}", "Site")).toBe("Site");
+      });
+
+      it("handles empty template", () => {
+        expect(parseTitleTemplate("", "Site")).toBe("");
+      });
+
+      it("handles template with no placeholders", () => {
+        expect(parseTitleTemplate("Static Title", "Site")).toBe("Static Title");
+      });
+
+      it("handles undefined subtitle", () => {
+        expect(parseTitleTemplate("{title} - {subtitle}", "Site")).toBe("Site");
+      });
+    });
+
+    describe("shouldForceNoIndex edge cases", () => {
+      it("handles /admin exact match", () => {
+        expect(shouldForceNoIndex("/admin")).toBe(true);
+      });
+
+      it("handles nested admin path", () => {
+        expect(shouldForceNoIndex("/admin/users/1")).toBe(true);
+      });
+
+      it("handles /settings path", () => {
+        expect(shouldForceNoIndex("/settings/general")).toBe(true);
+      });
+
+      it("does not match partial prefix", () => {
+        expect(shouldForceNoIndex("/admin-news")).toBe(false);
+        expect(shouldForceNoIndex("/login-page")).toBe(false);
+      });
+    });
+
+    describe("resolveRobotsNoIndex edge cases", () => {
+      it("returns false for empty object", () => {
+        expect(resolveRobotsNoIndex({})).toBe(false);
+      });
+
+      it("returns false for object with only follow", () => {
+        expect(resolveRobotsNoIndex({ follow: false })).toBe(false);
+      });
+
+      it("handles googleBot as undefined", () => {
+        expect(
+          resolveRobotsNoIndex({ index: true, googleBot: undefined }),
+        ).toBe(false);
+      });
+    });
   });
 });

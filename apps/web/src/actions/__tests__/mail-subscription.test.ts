@@ -234,5 +234,74 @@ describe("mail-subscription actions", () => {
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(3); // ACTIVE, PENDING_VERIFY, UNSUBSCRIBED
     });
+
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMailSubscriptionStatusDistribution();
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ---------- 补充测试 ----------
+
+  describe("subscribeMail 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await subscribeMail({
+        email: "test@example.com",
+        captchaToken: "valid-token",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("验证码失败时应返回错误", async () => {
+      mockVerifyCaptchaToken.mockResolvedValueOnce({ success: false });
+      const result = await subscribeMail({
+        email: "test@example.com",
+        captchaToken: "invalid-token",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMailSubscriptionList 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMailSubscriptionList();
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getMailSubscriptionList();
+      expect(result.success).toBe(false);
+    });
+
+    it("返回空列表时应正常工作", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.post.findFirst.mockResolvedValue(null);
+      mockPrisma.mailSubscription.count.mockResolvedValue(0);
+      mockPrisma.mailSubscription.findMany.mockResolvedValue([]);
+
+      const result = await getMailSubscriptionList();
+      expect(result.success).toBe(true);
+      expect(result.data.items).toHaveLength(0);
+    });
+  });
+
+  describe("getMailSubscriptionStatusDistribution 补充测试", () => {
+    it("速率限制时应返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMailSubscriptionStatusDistribution();
+      expect(result.success).toBe(false);
+    });
+
+    it("无订阅者时应返回分布", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.mailSubscription.groupBy.mockResolvedValue([]);
+
+      const result = await getMailSubscriptionStatusDistribution();
+      expect(result.success).toBe(true);
+    });
   });
 });
