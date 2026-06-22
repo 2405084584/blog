@@ -4,11 +4,12 @@
 import Rlog from "rlog-js";
 import { pathToFileURL } from "url";
 
+import { loadWebEnv } from "@/../scripts/load-env";
 import {
   closePrismaScriptRuntime,
   createPrismaScriptRuntime,
 } from "@/../scripts/load-prisma-client";
-import { loadWebEnv } from "@/../scripts/load-env";
+import { runTaskWithRetry } from "@/../scripts/retry-task";
 
 loadWebEnv();
 
@@ -34,7 +35,13 @@ export async function runRuntimeInitializationWithOptions(options?: {
 
   rlog.log("Starting environment variables check...");
   const { checkEnvironmentVariables } = await import("./check-env.js");
-  await checkEnvironmentVariables();
+  await runTaskWithRetry(
+    "environment variables check",
+    checkEnvironmentVariables,
+    {
+      logger: rlog,
+    },
+  );
   rlog.log();
 
   rlog.log("Starting JWT key pair validation and Redis connection check...");
@@ -42,56 +49,115 @@ export async function runRuntimeInitializationWithOptions(options?: {
     import("./check-jwt-token.js"),
     import("./check-redis.js"),
   ]);
-  await Promise.all([checkJWTKeyPair(), checkRedisConnection()]);
+  await Promise.all([
+    runTaskWithRetry("JWT key pair validation", checkJWTKeyPair, {
+      logger: rlog,
+    }),
+    runTaskWithRetry("Redis connection check", checkRedisConnection, {
+      logger: rlog,
+    }),
+  ]);
   rlog.log();
 
-  const runtime = options?.prisma ? null : await createPrismaScriptRuntime();
+  rlog.log("Starting Prisma runtime initialization...");
+  const runtime = options?.prisma
+    ? null
+    : await runTaskWithRetry(
+        "Prisma runtime initialization",
+        createPrismaScriptRuntime,
+        {
+          logger: rlog,
+        },
+      );
+  rlog.log();
   const sharedPrisma = options?.prisma ?? runtime?.prisma;
 
   try {
     rlog.log("Starting database check...");
     const { checkDatabaseHealth } = await import("./check-db.js");
-    await checkDatabaseHealth({
-      prisma: sharedPrisma,
-    });
+    await runTaskWithRetry(
+      "database check",
+      () =>
+        checkDatabaseHealth({
+          prisma: sharedPrisma,
+        }),
+      {
+        logger: rlog,
+      },
+    );
     rlog.log();
 
     rlog.log("Starting database update...");
     const { updateDatabase } = await import("./update-db.js");
-    await updateDatabase({
-      prisma: sharedPrisma,
-      runMigrateDeploy: options?.runMigrateDeploy,
-    });
+    await runTaskWithRetry(
+      "database update",
+      () =>
+        updateDatabase({
+          prisma: sharedPrisma,
+          runMigrateDeploy: options?.runMigrateDeploy,
+        }),
+      {
+        logger: rlog,
+      },
+    );
     rlog.log();
 
     rlog.info("Starting database seeding with default values...");
     const { seedDefaults } = await import("./seed-defaults.js");
-    await seedDefaults({
-      prisma: sharedPrisma,
-    });
+    await runTaskWithRetry(
+      "database seeding",
+      () =>
+        seedDefaults({
+          prisma: sharedPrisma,
+        }),
+      {
+        logger: rlog,
+      },
+    );
     rlog.log();
 
     rlog.log("Starting persistent media synchronization...");
     const { syncPersistentMedia } = await import("./sync-persistent-media.js");
-    await syncPersistentMedia({
-      prisma: sharedPrisma,
-    });
+    await runTaskWithRetry(
+      "persistent media synchronization",
+      () =>
+        syncPersistentMedia({
+          prisma: sharedPrisma,
+        }),
+      {
+        logger: rlog,
+      },
+    );
     rlog.log();
 
     rlog.log("Starting cloud instance synchronization...");
     const { syncCloudInstance } = await import("./sync-cloud-instance.js");
-    await syncCloudInstance({
-      prisma: sharedPrisma,
-    });
+    await runTaskWithRetry(
+      "cloud instance synchronization",
+      () =>
+        syncCloudInstance({
+          prisma: sharedPrisma,
+        }),
+      {
+        logger: rlog,
+      },
+    );
     rlog.log();
 
     rlog.log("Starting view count cache generation...");
     const { default: generateViewCountCache } = await import(
       "./generate-view-count-cache.js"
     );
-    await generateViewCountCache({
-      prisma: sharedPrisma,
-    });
+    await runTaskWithRetry(
+      "view count cache generation",
+      () =>
+        generateViewCountCache({
+          prisma: sharedPrisma,
+        }),
+      {
+        logger: rlog,
+      },
+    );
     rlog.log();
   } finally {
     await closePrismaScriptRuntime(runtime);

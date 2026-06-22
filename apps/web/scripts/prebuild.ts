@@ -6,6 +6,7 @@ import path from "path";
 import Rlog from "rlog-js";
 
 import { loadWebEnv } from "@/../scripts/load-env";
+import { runTaskWithRetry } from "@/../scripts/retry-task";
 
 // 加载 apps/web 与仓库根目录下的 .env* 文件
 loadWebEnv();
@@ -25,6 +26,15 @@ rlog.file.init();
 
 const startTime = Date.now();
 const isPortableBuild = process.env.BUILD_PROFILE === "portable";
+
+function runPrebuildTask<T>(
+  taskName: string,
+  task: () => Promise<T> | T,
+): Promise<T> {
+  return runTaskWithRetry(taskName, task, {
+    logger: rlog,
+  });
+}
 
 rlog.log();
 rlog.log("NeutralPress Initializing...");
@@ -53,7 +63,10 @@ try {
   } else {
     rlog.log("Starting environment variables check...");
     const { checkEnvironmentVariables } = await import("./check-env.js");
-    await checkEnvironmentVariables();
+    await runPrebuildTask(
+      "environment variables check",
+      checkEnvironmentVariables,
+    );
     rlog.log();
 
     rlog.log("Starting JWT key pair validation and Redis connection check...");
@@ -61,7 +74,10 @@ try {
       import("./check-jwt-token.js"),
       import("./check-redis.js"),
     ]);
-    await Promise.all([checkJWTKeyPair(), checkRedisConnection()]);
+    await Promise.all([
+      runPrebuildTask("JWT key pair validation", checkJWTKeyPair),
+      runPrebuildTask("Redis connection check", checkRedisConnection),
+    ]);
     rlog.log();
 
     const [
@@ -88,39 +104,62 @@ try {
       import("./generate-view-count-cache.js"),
     ]);
 
-    const prismaRuntime = await createPrismaScriptRuntime();
+    rlog.log("Starting Prisma runtime initialization...");
+    const prismaRuntime = await runPrebuildTask(
+      "Prisma runtime initialization",
+      createPrismaScriptRuntime,
+    );
+    rlog.log();
     const sharedPrisma = prismaRuntime.prisma;
     try {
       rlog.log("Starting database check...");
-      await checkDatabaseHealth({ prisma: sharedPrisma });
+      await runPrebuildTask("database check", () =>
+        checkDatabaseHealth({ prisma: sharedPrisma }),
+      );
       rlog.log();
 
       rlog.log("Starting database update...");
-      await updateDatabase({ prisma: sharedPrisma });
+      await runPrebuildTask("database update", () =>
+        updateDatabase({ prisma: sharedPrisma }),
+      );
       rlog.log();
 
       rlog.info("Starting database seeding with default values...");
-      await seedDefaults({ prisma: sharedPrisma });
+      await runPrebuildTask("database seeding", () =>
+        seedDefaults({ prisma: sharedPrisma }),
+      );
       rlog.log();
 
       rlog.log("Starting persistent media synchronization...");
-      await syncPersistentMedia({ prisma: sharedPrisma });
+      await runPrebuildTask("persistent media synchronization", () =>
+        syncPersistentMedia({ prisma: sharedPrisma }),
+      );
       rlog.log();
 
       rlog.log("Starting cloud instance synchronization...");
-      await syncCloudInstance({ prisma: sharedPrisma });
+      await runPrebuildTask("cloud instance synchronization", () =>
+        syncCloudInstance({ prisma: sharedPrisma }),
+      );
       rlog.log();
 
       rlog.log("Starting configuration, menu, and page cache generation...");
       await Promise.all([
-        generateConfigCache({ prisma: sharedPrisma }),
-        generateMenuCache({ prisma: sharedPrisma }),
-        generatePageCache({ prisma: sharedPrisma }),
+        runPrebuildTask("configuration cache generation", () =>
+          generateConfigCache({ prisma: sharedPrisma }),
+        ),
+        runPrebuildTask("menu cache generation", () =>
+          generateMenuCache({ prisma: sharedPrisma }),
+        ),
+        runPrebuildTask("page cache generation", () =>
+          generatePageCache({ prisma: sharedPrisma }),
+        ),
       ]);
       rlog.log();
 
       rlog.log("Starting view count cache generation...");
-      await generateViewCountCache({ prisma: sharedPrisma });
+      await runPrebuildTask("view count cache generation", () =>
+        generateViewCountCache({ prisma: sharedPrisma }),
+      );
       rlog.log();
     } finally {
       await closePrismaScriptRuntime(prismaRuntime);
@@ -131,14 +170,18 @@ try {
   const { generateBlockBusinessCatalog } = await import(
     "./generate-block-business-catalog.js"
   );
-  generateBlockBusinessCatalog();
+  await runPrebuildTask("block business catalog generation", () => {
+    generateBlockBusinessCatalog();
+  });
   rlog.log();
 
   rlog.log("Starting block definition catalog generation...");
   const { generateBlockDefinitionCatalog } = await import(
     "./generate-block-definition-catalog.js"
   );
-  generateBlockDefinitionCatalog();
+  await runPrebuildTask("block definition catalog generation", () => {
+    generateBlockDefinitionCatalog();
+  });
 
   // 完成 PreBuild
   const endTime = Date.now();
@@ -168,7 +211,9 @@ try {
       "Please check your build configuration and generated code artifacts.",
     );
   } else {
-    rlog.error("Please check your database configuration and try again.");
+    rlog.error(
+      "Please check your database, Redis, or external service configuration and try again.",
+    );
   }
   process.exit(1);
 }

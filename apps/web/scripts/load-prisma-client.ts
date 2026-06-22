@@ -1,6 +1,7 @@
 import { createRequire } from "module";
 
-import { getPrismaDatabaseUrl } from "./load-env";
+import { getPrismaDatabaseUrl } from "@/../scripts/load-env";
+import { runPrismaGenerate } from "@/../scripts/prisma-cli";
 
 type PrismaClientInstance = {
   $connect(): Promise<void>;
@@ -26,6 +27,44 @@ type PrismaClientModuleNamespace = {
 };
 
 const requireModule = createRequire(import.meta.url);
+
+function isPrismaClientNotGeneratedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("@prisma/client did not initialize yet");
+}
+
+async function createRuntimeFromConstructor(
+  PrismaClient: PrismaClientConstructor,
+): Promise<PrismaScriptRuntime> {
+  const [{ Pool }, { PrismaPg }] = await Promise.all([
+    import("pg"),
+    import("@prisma/adapter-pg"),
+  ]);
+
+  const pool = new Pool({
+    connectionString: getPrismaDatabaseUrl(),
+  });
+  let prisma: PrismaClientInstance | null = null;
+
+  try {
+    const adapter = new PrismaPg(pool);
+    prisma = new PrismaClient({
+      adapter,
+      log: [],
+    });
+
+    await prisma.$connect();
+
+    return {
+      prisma,
+      pool,
+    };
+  } catch (error) {
+    await prisma?.$disconnect().catch(() => undefined);
+    await pool.end().catch(() => undefined);
+    throw error;
+  }
+}
 
 function extractPrismaClient(
   namespace: PrismaClientModuleNamespace,
@@ -76,27 +115,41 @@ export async function loadPrismaClientConstructor(): Promise<PrismaClientConstru
 }
 
 export async function createPrismaScriptRuntime(): Promise<PrismaScriptRuntime> {
-  const PrismaClient = await loadPrismaClientConstructor();
-  const [{ Pool }, { PrismaPg }] = await Promise.all([
-    import("pg"),
-    import("@prisma/adapter-pg"),
-  ]);
+  let PrismaClient: PrismaClientConstructor;
 
-  const pool = new Pool({
-    connectionString: getPrismaDatabaseUrl(),
-  });
-  const adapter = new PrismaPg(pool);
-  const prisma = new PrismaClient({
-    adapter,
-    log: [],
-  });
+  try {
+    PrismaClient = await loadPrismaClientConstructor();
+  } catch (loadError) {
+    runPrismaGenerate({
+      cwd: process.cwd(),
+    });
 
-  await prisma.$connect();
+    try {
+      PrismaClient = await loadPrismaClientConstructor();
+    } catch (regeneratedLoadError) {
+      throw new Error(
+        [
+          "Prisma client is unavailable after running prisma generate.",
+          `Initial load error: ${loadError instanceof Error ? loadError.message : String(loadError)}`,
+          `Reload error: ${regeneratedLoadError instanceof Error ? regeneratedLoadError.message : String(regeneratedLoadError)}`,
+        ].join("\n"),
+      );
+    }
+  }
 
-  return {
-    prisma,
-    pool,
-  };
+  try {
+    return await createRuntimeFromConstructor(PrismaClient);
+  } catch (runtimeError) {
+    if (!isPrismaClientNotGeneratedError(runtimeError)) {
+      throw runtimeError;
+    }
+
+    runPrismaGenerate({
+      cwd: process.cwd(),
+    });
+    PrismaClient = await loadPrismaClientConstructor();
+    return createRuntimeFromConstructor(PrismaClient);
+  }
 }
 
 export async function closePrismaScriptRuntime(
