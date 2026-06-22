@@ -64,54 +64,67 @@ try {
     await Promise.all([checkJWTKeyPair(), checkRedisConnection()]);
     rlog.log();
 
-    rlog.log("Starting database check...");
-    const { checkDatabaseHealth } = await import("./check-db.js");
-    await checkDatabaseHealth();
-    rlog.log();
-
-    rlog.log("Starting database update...");
-    const { updateDatabase } = await import("./update-db.js");
-    await updateDatabase();
-    rlog.log();
-
-    rlog.info("Starting database seeding with default values...");
-    const { seedDefaults } = await import("./seed-defaults.js");
-    await seedDefaults();
-    rlog.log();
-
-    rlog.log("Starting persistent media synchronization...");
-    const { syncPersistentMedia } = await import("./sync-persistent-media.js");
-    await syncPersistentMedia();
-    rlog.log();
-
-    rlog.log("Starting cloud instance synchronization...");
-    const { syncCloudInstance } = await import("./sync-cloud-instance.js");
-    await syncCloudInstance();
-    rlog.log();
-
-    rlog.log("Starting configuration, menu, and page cache generation...");
     const [
+      { closePrismaScriptRuntime, createPrismaScriptRuntime },
+      { checkDatabaseHealth },
+      { updateDatabase },
+      { seedDefaults },
+      { syncPersistentMedia },
+      { syncCloudInstance },
       { generateConfigCache },
       { generateMenuCache },
       { generatePageCache },
+      { default: generateViewCountCache },
     ] = await Promise.all([
+      import("./load-prisma-client.js"),
+      import("./check-db.js"),
+      import("./update-db.js"),
+      import("./seed-defaults.js"),
+      import("./sync-persistent-media.js"),
+      import("./sync-cloud-instance.js"),
       import("./generate-config-cache.js"),
       import("./generate-menu-cache.js"),
       import("./generate-page-cache.js"),
+      import("./generate-view-count-cache.js"),
     ]);
-    await Promise.all([
-      generateConfigCache(),
-      generateMenuCache(),
-      generatePageCache(),
-    ]);
-    rlog.log();
 
-    rlog.log("Starting view count cache generation...");
-    const { default: generateViewCountCache } = await import(
-      "./generate-view-count-cache.js"
-    );
-    await generateViewCountCache();
-    rlog.log();
+    const prismaRuntime = await createPrismaScriptRuntime();
+    const sharedPrisma = prismaRuntime.prisma;
+    try {
+      rlog.log("Starting database check...");
+      await checkDatabaseHealth({ prisma: sharedPrisma });
+      rlog.log();
+
+      rlog.log("Starting database update...");
+      await updateDatabase({ prisma: sharedPrisma });
+      rlog.log();
+
+      rlog.info("Starting database seeding with default values...");
+      await seedDefaults({ prisma: sharedPrisma });
+      rlog.log();
+
+      rlog.log("Starting persistent media synchronization...");
+      await syncPersistentMedia({ prisma: sharedPrisma });
+      rlog.log();
+
+      rlog.log("Starting cloud instance synchronization...");
+      await syncCloudInstance({ prisma: sharedPrisma });
+      rlog.log();
+
+      rlog.log("Starting configuration, menu, and page cache generation...");
+      await Promise.all([
+        generateConfigCache({ prisma: sharedPrisma }),
+        generateMenuCache({ prisma: sharedPrisma }),
+        generatePageCache({ prisma: sharedPrisma }),
+      ]);
+      rlog.log();
+
+      rlog.log("Starting view count cache generation...");
+      await generateViewCountCache({ prisma: sharedPrisma });
+      rlog.log();
+    } finally {
+      await closePrismaScriptRuntime(prismaRuntime);
+    }
   }
 
   rlog.log("Starting block business catalog generation...");

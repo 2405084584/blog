@@ -1,11 +1,22 @@
 import { createRequire } from "module";
 
+import { getPrismaDatabaseUrl } from "./load-env";
+
 type PrismaClientInstance = {
   $connect(): Promise<void>;
   $disconnect(): Promise<void>;
 };
 
 type PrismaClientConstructor = new (options?: unknown) => PrismaClientInstance;
+
+type PgPoolInstance = {
+  end(): Promise<void>;
+};
+
+type PrismaScriptRuntime = {
+  prisma: PrismaClientInstance;
+  pool: PgPoolInstance;
+};
 
 type PrismaClientModuleNamespace = {
   PrismaClient?: PrismaClientConstructor;
@@ -62,4 +73,39 @@ export async function loadPrismaClientConstructor(): Promise<PrismaClientConstru
       ...errors.map((message) => `- ${message}`),
     ].join("\n"),
   );
+}
+
+export async function createPrismaScriptRuntime(): Promise<PrismaScriptRuntime> {
+  const PrismaClient = await loadPrismaClientConstructor();
+  const [{ Pool }, { PrismaPg }] = await Promise.all([
+    import("pg"),
+    import("@prisma/adapter-pg"),
+  ]);
+
+  const pool = new Pool({
+    connectionString: getPrismaDatabaseUrl(),
+  });
+  const adapter = new PrismaPg(pool);
+  const prisma = new PrismaClient({
+    adapter,
+    log: [],
+  });
+
+  await prisma.$connect();
+
+  return {
+    prisma,
+    pool,
+  };
+}
+
+export async function closePrismaScriptRuntime(
+  runtime: PrismaScriptRuntime | null | undefined,
+): Promise<void> {
+  if (!runtime) {
+    return;
+  }
+
+  await runtime.prisma.$disconnect();
+  await runtime.pool.end();
 }

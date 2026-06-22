@@ -4,6 +4,10 @@
 import Rlog from "rlog-js";
 import { pathToFileURL } from "url";
 
+import {
+  closePrismaScriptRuntime,
+  createPrismaScriptRuntime,
+} from "@/../scripts/load-prisma-client";
 import { loadWebEnv } from "@/../scripts/load-env";
 
 loadWebEnv();
@@ -41,50 +45,57 @@ export async function runRuntimeInitializationWithOptions(options?: {
   await Promise.all([checkJWTKeyPair(), checkRedisConnection()]);
   rlog.log();
 
-  rlog.log("Starting database check...");
-  const { checkDatabaseHealth } = await import("./check-db.js");
-  await checkDatabaseHealth({
-    prisma: options?.prisma,
-  });
-  rlog.log();
+  const runtime = options?.prisma ? null : await createPrismaScriptRuntime();
+  const sharedPrisma = options?.prisma ?? runtime?.prisma;
 
-  rlog.log("Starting database update...");
-  const { updateDatabase } = await import("./update-db.js");
-  await updateDatabase({
-    prisma: options?.prisma,
-    runMigrateDeploy: options?.runMigrateDeploy,
-  });
-  rlog.log();
+  try {
+    rlog.log("Starting database check...");
+    const { checkDatabaseHealth } = await import("./check-db.js");
+    await checkDatabaseHealth({
+      prisma: sharedPrisma,
+    });
+    rlog.log();
 
-  rlog.info("Starting database seeding with default values...");
-  const { seedDefaults } = await import("./seed-defaults.js");
-  await seedDefaults({
-    prisma: options?.prisma,
-  });
-  rlog.log();
+    rlog.log("Starting database update...");
+    const { updateDatabase } = await import("./update-db.js");
+    await updateDatabase({
+      prisma: sharedPrisma,
+      runMigrateDeploy: options?.runMigrateDeploy,
+    });
+    rlog.log();
 
-  rlog.log("Starting persistent media synchronization...");
-  const { syncPersistentMedia } = await import("./sync-persistent-media.js");
-  await syncPersistentMedia({
-    prisma: options?.prisma,
-  });
-  rlog.log();
+    rlog.info("Starting database seeding with default values...");
+    const { seedDefaults } = await import("./seed-defaults.js");
+    await seedDefaults({
+      prisma: sharedPrisma,
+    });
+    rlog.log();
 
-  rlog.log("Starting cloud instance synchronization...");
-  const { syncCloudInstance } = await import("./sync-cloud-instance.js");
-  await syncCloudInstance({
-    prisma: options?.prisma,
-  });
-  rlog.log();
+    rlog.log("Starting persistent media synchronization...");
+    const { syncPersistentMedia } = await import("./sync-persistent-media.js");
+    await syncPersistentMedia({
+      prisma: sharedPrisma,
+    });
+    rlog.log();
 
-  rlog.log("Starting view count cache generation...");
-  const { default: generateViewCountCache } = await import(
-    "./generate-view-count-cache.js"
-  );
-  await generateViewCountCache({
-    prisma: options?.prisma,
-  });
-  rlog.log();
+    rlog.log("Starting cloud instance synchronization...");
+    const { syncCloudInstance } = await import("./sync-cloud-instance.js");
+    await syncCloudInstance({
+      prisma: sharedPrisma,
+    });
+    rlog.log();
+
+    rlog.log("Starting view count cache generation...");
+    const { default: generateViewCountCache } = await import(
+      "./generate-view-count-cache.js"
+    );
+    await generateViewCountCache({
+      prisma: sharedPrisma,
+    });
+    rlog.log();
+  } finally {
+    await closePrismaScriptRuntime(runtime);
+  }
 
   rlog.success("✓ Runtime initialization completed successfully!");
   rlog.log();
