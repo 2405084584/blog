@@ -455,4 +455,138 @@ describe("security actions", () => {
       expect(result.data?.[0].count).toBe(12);
     });
   });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getSecurityOverview 分支", () => {
+    it("force=true 时跳过缓存", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisGet.mockResolvedValue(null);
+      mockRedisScan.mockResolvedValue(["0", []]);
+      const mod = await import("@/actions/security");
+      const result = await mod.getSecurityOverview({
+        access_token: "token",
+        force: true,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisGet.mockRejectedValue(new Error("Redis error"));
+      const mod = await import("@/actions/security");
+      const result = await mod.getSecurityOverview({
+        access_token: "token",
+        force: true,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getIPList 分支", () => {
+    it("带 filter=banned 过滤", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisScan.mockResolvedValue(["0", ["1.2.3.4"]]);
+      mockRedisGet.mockResolvedValue("10");
+      mockRedisTtl.mockResolvedValue(3600);
+      mockRedisZcount.mockResolvedValue(5);
+      const mod = await import("@/actions/security");
+      const result = await mod.getIPList({
+        access_token: "token",
+        filter: "banned",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("带 search 过滤", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisScan.mockResolvedValue(["0", ["1.2.3.4", "5.6.7.8"]]);
+      mockRedisGet.mockResolvedValue("10");
+      mockRedisTtl.mockResolvedValue(3600);
+      mockRedisZcount.mockResolvedValue(5);
+      const mod = await import("@/actions/security");
+      const result = await mod.getIPList({
+        access_token: "token",
+        search: "1.2",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisScan.mockRejectedValue(new Error("Redis error"));
+      const mod = await import("@/actions/security");
+      const result = await mod.getIPList({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("banIP 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisSet.mockRejectedValue(new Error("Redis error"));
+      const mod = await import("@/actions/security");
+      const result = await mod.banIP({
+        access_token: "token",
+        ip: "1.2.3.4",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("clearRateLimit 分支", () => {
+    it("del 返回 0 时 cleared=false", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisDel.mockResolvedValue(0);
+      const mod = await import("@/actions/security");
+      const result = await mod.clearRateLimit({
+        access_token: "token",
+        ip: "1.2.3.4",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisDel.mockRejectedValue(new Error("Redis error"));
+      const mod = await import("@/actions/security");
+      const result = await mod.clearRateLimit({
+        access_token: "token",
+        ip: "1.2.3.4",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getEndpointStats 分支", () => {
+    it("空结果返回零统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisZrangebyscore.mockResolvedValue([]);
+      const mod = await import("@/actions/security");
+      const result = await mod.getEndpointStats({ access_token: "token" });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisZrangebyscore.mockRejectedValue(new Error("Redis error"));
+      const mod = await import("@/actions/security");
+      const result = await mod.getEndpointStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getRequestTrends 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockRedisZrangebyscore.mockRejectedValue(new Error("Redis error"));
+      const mod = await import("@/actions/security");
+      const result = await mod.getRequestTrends({
+        access_token: "token",
+        hours: 24,
+        granularity: "hour",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });

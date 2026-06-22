@@ -146,6 +146,8 @@ vi.mock("@/lib/server/notice", () => ({ sendNotice: vi.fn() }));
 
 import {
   getPostComments,
+  getCommentReplies,
+  getDirectChildren,
   createComment,
   updateCommentStatus,
   deleteComments,
@@ -609,6 +611,2065 @@ describe("comment actions", () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await unlikeComment(
         { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==================== getCommentReplies ====================
+
+  describe("getCommentReplies", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await getCommentReplies(
+          { commentId: "comment-1", maxDepth: 3 },
+          { environment: "serveraction" },
+        );
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("评论不存在时应返回 404", async () => {
+        mockPrismaCommentFindUnique.mockResolvedValue(null);
+        const result = await getCommentReplies(
+          { commentId: "nonexistent", maxDepth: 3 },
+          { environment: "serveraction" },
+        );
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
+  // ==================== getDirectChildren ====================
+
+  describe("getDirectChildren", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await getDirectChildren(
+          { postSlug: "test-post", page: 1, pageSize: 10 },
+          { environment: "serveraction" },
+        );
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("评论功能关闭时应返回禁止", async () => {
+        mockGetConfig.mockResolvedValue(false);
+        const result = await getDirectChildren(
+          { postSlug: "test-post", page: 1, pageSize: 10 },
+          { environment: "serveraction" },
+        );
+        expect(result.success).toBe(false);
+      });
+
+      it("目标不存在时应返回 404", async () => {
+        mockGetConfig.mockResolvedValue(true);
+        mockNormalizePageSlug.mockReturnValue("test-post");
+        mockPrismaPostFindUnique.mockResolvedValue(null);
+        mockPrismaPageFindFirst.mockResolvedValue(null);
+        const result = await getDirectChildren(
+          { postSlug: "nonexistent", page: 1, pageSize: 10 },
+          { environment: "serveraction" },
+        );
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("getPostComments 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getPostComments(
+        { postId: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentsAdmin(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentHistory 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("likeComment 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await likeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("unlikeComment 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await unlikeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteOwnComment 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteOwnComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未登录时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteOwnComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentReplies 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentReplies(
+        { commentId: "comment-1", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getDirectChildren(
+        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentsAdmin(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("likeComment 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await likeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("unlikeComment 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await unlikeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 3", () => {
+    it("评论功能关闭时返回禁止", async () => {
+      mockGetConfig.mockResolvedValue(false);
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 3", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCreate.mockRejectedValue(new Error("DB error"));
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteOwnComment 补充测试 2", () => {
+    it("评论不存在时返回 404", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await deleteOwnComment(
+        { commentId: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("删除他人评论时返回 403", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: "comment-1",
+        userUid: 999,
+      });
+      const result = await deleteOwnComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentReplies 补充测试 2", () => {
+    it("评论不存在时返回 404", async () => {
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await getCommentReplies(
+        { commentId: "nonexistent", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试 2", () => {
+    it("评论功能关闭时返回禁止", async () => {
+      mockGetConfig.mockResolvedValue(false);
+      const result = await getDirectChildren(
+        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 4", () => {
+    it("目标不存在时返回 404", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("nonexistent");
+      mockPrismaPostFindUnique.mockResolvedValue(null);
+      mockPrismaPageFindFirst.mockResolvedValue(null);
+      const result = await getPostComments(
+        { slug: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 4", () => {
+    it("评论功能关闭时返回禁止", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(false);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("likeComment 补充测试 3", () => {
+    it("已点赞时应返回成功（重复点赞）", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: "comment-1",
+        postId: 1,
+      });
+      mockPrismaCommentLikeFindUnique.mockResolvedValue({
+        id: "like-1",
+        commentId: "comment-1",
+        userUid: 1,
+      });
+      const result = await likeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("unlikeComment 补充测试 3", () => {
+    it("未点赞时应返回成功", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: "comment-1",
+        postId: 1,
+      });
+      mockPrismaCommentLikeFindUnique.mockResolvedValue(null);
+      const result = await unlikeComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getPostComments 补充测试 5", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 5", () => {
+    it("评论内容为空时应返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      const result = await createComment(
+        { postId: 1, content: "" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 4", () => {
+    it("成功返回评论统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(100);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 3", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 2, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getPostComments 补充测试 6", () => {
+    it("无评论时应返回空数组", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
+    });
+  });
+
+  describe("getCommentStats 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentsAdmin(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 7", () => {
+    it("评论关闭时返回禁止", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: false,
+      });
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 7", () => {
+    it("目标不存在时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockPrismaPostFindUnique.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 999, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteOwnComment 补充测试 3", () => {
+    it("成功删除自己的评论", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: "comment-1",
+        userUid: 1,
+      });
+      mockPrismaCommentUpdate.mockResolvedValue({});
+      const result = await deleteOwnComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("likeComment 补充测试 4", () => {
+    it("评论不存在时返回 404", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await likeComment(
+        { commentId: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 5", () => {
+    it("状态筛选应正确工作", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { status: "PENDING" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentStats 补充测试 6", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentReplies 补充测试 3", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentReplies(
+        { commentId: "comment-1", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试 3", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getDirectChildren(
+        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 8", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 8", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 6", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 3, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 7", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 9", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 9", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 10", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 5", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 5", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 7", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentsAdmin(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 6", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 8", () => {
+    it("成功返回评论统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(100);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentReplies 补充测试 4", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentReplies(
+        { commentId: "comment-1", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试 4", () => {
+    it("目标不存在时应返回 404", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("nonexistent");
+      mockPrismaPostFindUnique.mockResolvedValue(null);
+      mockPrismaPageFindFirst.mockResolvedValue(null);
+      const result = await getDirectChildren(
+        { postSlug: "nonexistent", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 11", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 10", () => {
+    it("评论内容为空时应返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      const result = await createComment(
+        { postId: 1, content: "" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 6", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 6", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 8", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 5, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 7", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 9", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 12", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 5 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 11", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 9", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentsAdmin(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 8", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 10", () => {
+    it("成功返回评论统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(100);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentReplies 补充测试 5", () => {
+    it("评论不存在时返回 404", async () => {
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await getCommentReplies(
+        { commentId: "nonexistent", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试 5", () => {
+    it("评论功能关闭时返回禁止", async () => {
+      mockGetConfig.mockResolvedValue(false);
+      const result = await getDirectChildren(
+        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 13", () => {
+    it("评论关闭时返回禁止", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: false,
+      });
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 12", () => {
+    it("目标不存在时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockPrismaPostFindUnique.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 999, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteOwnComment 补充测试 4", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteOwnComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 14", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 5 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 13", () => {
+    it("评论内容为空时应返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      const result = await createComment(
+        { postId: 1, content: "" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 8", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 8", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 10", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 3, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 9", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 11", () => {
+    it("成功返回评论统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(100);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("likeComment 补充测试 5", () => {
+    it("评论不存在时返回 404", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await likeComment(
+        { commentId: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentReplies 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentReplies(
+        { commentId: "comment-1", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getDirectChildren(
+        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 15", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 14", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 9", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 9", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 11", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 5, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 10", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 12", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 16", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 15", () => {
+    it("评论内容为空时应返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      const result = await createComment(
+        { postId: 1, content: "" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 10", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 10", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 12", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 5, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 11", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 13", () => {
+    it("成功返回评论统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(100);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getPostComments 补充测试 17", () => {
+    it("评论关闭时返回禁止", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: false,
+      });
+      const result = await getPostComments(
+        { slug: "test-post" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 补充测试 16", () => {
+    it("目标不存在时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockPrismaPostFindUnique.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 999, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteOwnComment 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteOwnComment(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentReplies 补充测试 7", () => {
+    it("评论不存在时返回 404", async () => {
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await getCommentReplies(
+        { commentId: "nonexistent", maxDepth: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getDirectChildren 补充测试 7", () => {
+    it("目标不存在时应返回 404", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("nonexistent");
+      mockPrismaPostFindUnique.mockResolvedValue(null);
+      mockPrismaPageFindFirst.mockResolvedValue(null);
+      const result = await getDirectChildren(
+        { postSlug: "nonexistent", page: 1, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 18", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 5 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 11", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 11", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 13", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { page: 5, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 12", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 14", () => {
+    it("成功返回评论统计", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrismaCommentCount.mockResolvedValue(100);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("likeComment 补充测试 6", () => {
+    it("评论不存在时返回 404", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrismaCommentFindUnique.mockResolvedValue(null);
+      const result = await likeComment(
+        { commentId: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 19", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 17", () => {
+    it("未认证时应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await createComment(
+        { postId: 1, content: "Test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCommentStatus 补充测试 12", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCommentStatus(
+        { commentId: "comment-1", status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteComments 补充测试 12", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteComments(
+        { commentIds: ["comment-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 补充测试 14", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentsAdmin(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentHistory 补充测试 13", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentHistory(
+        { commentId: "comment-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentStats 补充测试 15", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCommentStats({}, { environment: "serveraction" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 补充测试 20", () => {
+    it("分页参数应正确传递", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("createComment 补充测试 18", () => {
+    it("评论内容为空时应返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      const result = await createComment(
+        { postId: 1, content: "" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 深层分支覆盖测试 =====
+
+  describe("createComment 回复嵌套分支", () => {
+    it("parentId 对应的父评论不存在返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+        status: "PUBLISHED",
+        deletedAt: null,
+      });
+      mockPrismaCommentFindUnique.mockResolvedValue(null); // parent not found
+      const result = await createComment(
+        { postId: 1, content: "Reply", parentId: 999 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("parentId 对应的父评论属于不同文章返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+        status: "PUBLISHED",
+        deletedAt: null,
+      });
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: 999,
+        postId: 2, // different post
+        depth: 0,
+        path: "999",
+        sortKey: "00000999",
+        replyCount: 0,
+      });
+      const result = await createComment(
+        { postId: 1, content: "Reply", parentId: 999 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createComment 匿名用户分支", () => {
+    it("匿名允许但需要邮箱且未提供返回失败", async () => {
+      mockAuthVerify.mockResolvedValue(null); // anonymous
+      mockGetConfig
+        .mockResolvedValueOnce(true) // comment enabled
+        .mockResolvedValueOnce(true) // allowAnonymous
+        .mockResolvedValueOnce(true) // requireAnonEmail
+        .mockResolvedValueOnce(false) // reviewAnon
+        .mockResolvedValueOnce(false) // reviewAll
+        .mockResolvedValueOnce(false); // akismet
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+        status: "PUBLISHED",
+        deletedAt: null,
+      });
+      const result = await createComment(
+        { postId: 1, content: "Anonymous comment" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostComments 数据返回分支", () => {
+    it("有评论数据时正确返回", async () => {
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(2);
+      mockPrismaCommentFindMany
+        .mockResolvedValueOnce([
+          {
+            id: 1,
+            content: "Root comment",
+            status: "APPROVED",
+            postId: 1,
+            parentId: null,
+            depth: 0,
+            path: "1",
+            sortKey: "00000001",
+            replyCount: 1,
+            likeCount: 5,
+            createdAt: new Date(),
+            user: { uid: 1, username: "user1", nickname: "User 1" },
+            post: { title: "Test", slug: "test" },
+            page: null,
+            parent: null,
+          },
+        ]) // root comments
+        .mockResolvedValueOnce([
+          {
+            id: 2,
+            content: "Child comment",
+            status: "APPROVED",
+            postId: 1,
+            parentId: 1,
+            depth: 1,
+            path: "1/2",
+            sortKey: "00000001.00000002",
+            replyCount: 0,
+            likeCount: 1,
+            createdAt: new Date(),
+            user: { uid: 2, username: "user2", nickname: "User 2" },
+            post: { title: "Test", slug: "test" },
+            page: null,
+            parent: { id: 1 },
+          },
+        ]) // level-1 children
+        .mockResolvedValueOnce([]); // level-2 children
+      mockPrismaCommentLikeFindMany.mockResolvedValue([]);
+
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+    });
+
+    it("登录用户看到自己的待审评论", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockGetConfig.mockResolvedValue(true);
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaPostFindUnique.mockResolvedValue({
+        id: 1,
+        allowComments: true,
+      });
+      mockPrismaCommentCount.mockResolvedValue(1);
+      mockPrismaCommentFindMany
+        .mockResolvedValueOnce([
+          {
+            id: 1,
+            content: "My pending comment",
+            status: "PENDING",
+            postId: 1,
+            parentId: null,
+            depth: 0,
+            path: "1",
+            sortKey: "00000001",
+            replyCount: 0,
+            likeCount: 0,
+            createdAt: new Date(),
+            user: { uid: 1, username: "user1", nickname: "User 1" },
+            post: { title: "Test", slug: "test" },
+            page: null,
+            parent: null,
+          },
+        ])
+        .mockResolvedValueOnce([]); // no children
+      mockPrismaCommentLikeFindMany.mockResolvedValue([]);
+
+      const result = await getPostComments(
+        { slug: "test-post", pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentStats 分支", () => {
+    it("AUTHOR 角色过滤到自己的文章", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrismaCommentCount.mockResolvedValue(3);
+      mockPrismaCommentFindMany.mockResolvedValue([
+        { status: "APPROVED" },
+        { status: "APPROVED" },
+        { status: "PENDING" },
+      ]);
+      const result = await getCommentStats(
+        { access_token: "token", force: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getCommentStats 补充分支", () => {
+    it("缓存命中时返回缓存数据", async () => {
+      const { getCache } = await import("@/lib/server/cache");
+      vi.mocked(getCache).mockResolvedValue({
+        total: 10,
+        approved: 8,
+        pending: 1,
+        spam: 1,
+        todayCount: 2,
+        weekCount: 5,
+      });
+      const result = await getCommentStats(
+        { access_token: "token", force: false },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("force=true 时跳过缓存", async () => {
+      mockPrismaCommentCount.mockResolvedValue(20);
+      mockPrismaCommentFindMany.mockResolvedValue([
+        { status: "APPROVED" },
+        { status: "PENDING" },
+      ]);
+      const result = await getCommentStats(
+        { access_token: "token", force: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("AUTHOR 角色过滤到自己的文章", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrismaCommentCount.mockResolvedValue(3);
+      mockPrismaCommentFindMany.mockResolvedValue([
+        { status: "APPROVED" },
+        { status: "APPROVED" },
+        { status: "PENDING" },
+      ]);
+      const result = await getCommentStats(
+        { access_token: "token", force: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockPrismaCommentCount.mockRejectedValue(new Error("DB error"));
+      const result = await getCommentStats(
+        { access_token: "token", force: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCommentsAdmin 分支", () => {
+    it("AUTHOR 角色过滤到自己的文章", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { access_token: "token", page: 1, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 uid 过滤", async () => {
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { access_token: "token", page: 1, pageSize: 20, uid: 3 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 parentOnly 过滤", async () => {
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        { access_token: "token", page: 1, pageSize: 20, parentOnly: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 status 数组过滤", async () => {
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          status: ["APPROVED", "PENDING"],
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 slug 过滤", async () => {
+      mockNormalizePageSlug.mockReturnValue("test-post");
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          slug: "test-post",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 search 过滤", async () => {
+      mockPrismaCommentCount.mockResolvedValue(0);
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentsAdmin(
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          search: "keyword",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteComments 分支", () => {
+    it("AUTHOR 角色删除自己的评论", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrismaCommentFindMany.mockResolvedValue([{ id: 1 }]);
+      mockPrismaCommentUpdateMany.mockResolvedValue({ count: 1 });
+      const result = await deleteComments(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("无匹配评论时返回成功", async () => {
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await deleteComments(
+        { access_token: "token", ids: [999] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateCommentStatus 分支", () => {
+    it("AUTHOR 角色更新自己文章的评论状态", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrismaCommentFindMany.mockResolvedValue([{ id: 1 }]);
+      mockPrismaCommentUpdateMany.mockResolvedValue({ count: 1 });
+      const result = await updateCommentStatus(
+        { access_token: "token", ids: [1], status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("无匹配评论时返回成功", async () => {
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await updateCommentStatus(
+        { access_token: "token", ids: [999], status: "APPROVED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCommentHistory 分支", () => {
+    it("AUTHOR 角色过滤到自己的文章", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrismaCommentFindMany.mockResolvedValue([]);
+      const result = await getCommentHistory(
+        { access_token: "token", days: 30 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("有数据时正确聚合", async () => {
+      const now = new Date();
+      mockPrismaCommentFindMany.mockResolvedValue([
+        {
+          id: 1,
+          createdAt: now,
+          postId: 1,
+          post: { title: "Post 1", slug: "post-1" },
+          pageId: null,
+          page: null,
+        },
+        {
+          id: 2,
+          createdAt: now,
+          postId: 1,
+          post: { title: "Post 1", slug: "post-1" },
+          pageId: null,
+          page: null,
+        },
+      ]);
+      const result = await getCommentHistory(
+        { access_token: "token", days: 7 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("likeComment/unlikeComment 错误分支", () => {
+    it("likeComment 事务失败返回错误", async () => {
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: 1,
+        status: "APPROVED",
+      });
+      mockPrismaTransaction.mockRejectedValue(new Error("TX error"));
+      const result = await likeComment(
+        { commentId: 1, access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("unlikeComment 事务失败返回错误", async () => {
+      mockPrismaTransaction.mockRejectedValue(new Error("TX error"));
+      const result = await unlikeComment(
+        { commentId: 1, access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteOwnComment 错误分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockPrismaCommentFindUnique.mockResolvedValue({
+        id: 1,
+        userUid: 1,
+        status: "APPROVED",
+      });
+      mockPrismaCommentUpdate.mockRejectedValue(new Error("DB error"));
+      const result = await deleteOwnComment(
+        { commentId: 1, access_token: "token" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);

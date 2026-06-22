@@ -91,10 +91,12 @@ vi.mock("next/cache", () => ({
 
 describe("message actions", () => {
   let getConversations: typeof import("@/actions/message").getConversations;
+  let getConversationMessages: typeof import("@/actions/message").getConversationMessages;
   let sendMessage: typeof import("@/actions/message").sendMessage;
   let markConversationAsRead: typeof import("@/actions/message").markConversationAsRead;
   let deleteConversation: typeof import("@/actions/message").deleteConversation;
   let searchUsers: typeof import("@/actions/message").searchUsers;
+  let checkMessagePermission: typeof import("@/actions/message").checkMessagePermission;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -103,10 +105,12 @@ describe("message actions", () => {
     mockGetConfig.mockResolvedValue(true);
     const mod = await import("@/actions/message");
     getConversations = mod.getConversations;
+    getConversationMessages = mod.getConversationMessages;
     sendMessage = mod.sendMessage;
     markConversationAsRead = mod.markConversationAsRead;
     deleteConversation = mod.deleteConversation;
     searchUsers = mod.searchUsers;
+    checkMessagePermission = mod.checkMessagePermission;
   });
 
   // ---------- getConversations ----------
@@ -368,6 +372,156 @@ describe("message actions", () => {
       expect(result.success).toBe(true);
       expect(result.data.users).toHaveLength(1);
       expect(result.data.users[0].emailMd5).toBe("md5hash");
+    });
+  });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("getConversations 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getConversations();
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("sendMessage 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await sendMessage(2, "Hello");
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("markConversationAsRead 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await markConversationAsRead(
+        "550e8400-e29b-41d4-a716-446655440000",
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteConversation 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteConversation(
+        "550e8400-e29b-41d4-a716-446655440000",
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getConversationMessages 分支", () => {
+    it("消息系统禁用时返回失败", async () => {
+      mockGetConfig.mockResolvedValue(false);
+      const result = await getConversationMessages(
+        "550e8400-e29b-41d4-a716-446655440000",
+        { page: 1, pageSize: 20 },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("用户不是参与者返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 999, role: "USER" });
+      mockPrisma.conversationParticipant.findUnique.mockResolvedValue(null);
+      const result = await getConversationMessages(
+        "550e8400-e29b-41d4-a716-446655440000",
+        { page: 1, pageSize: 20 },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("成功获取消息列表", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.conversationParticipant.findUnique.mockResolvedValue({
+        conversationId: "550e8400-e29b-41d4-a716-446655440000",
+        userUid: 1,
+      });
+      mockPrisma.message.findMany.mockResolvedValue([]);
+      mockPrisma.message.count.mockResolvedValue(0);
+      const result = await getConversationMessages(
+        "550e8400-e29b-41d4-a716-446655440000",
+        { page: 1, pageSize: 20 },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("checkMessagePermission 分支", () => {
+    it("消息系统禁用时返回 allowed:false", async () => {
+      mockGetConfig.mockResolvedValue(false);
+      const result = await checkMessagePermission(2);
+      expect(result.success).toBe(true);
+    });
+
+    it("自查时返回 allowed:false", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      const result = await checkMessagePermission(1);
+      expect(result.success).toBe(true);
+    });
+
+    it("目标用户未找到返回 allowed:false", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const result = await checkMessagePermission(999);
+      expect(result.success).toBe(true);
+    });
+
+    it("权限检查通过返回 allowed:true", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        uid: 2,
+        role: "USER",
+        messagePermission: "everyone",
+      });
+      const result = await checkMessagePermission(2);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("searchUsers 分支", () => {
+    it("消息系统禁用时返回失败", async () => {
+      mockGetConfig.mockResolvedValue(false);
+      const result = await searchUsers("test");
+      expect(result.success).toBe(false);
+    });
+
+    it("UID 可解析时添加 uid 过滤", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      const result = await searchUsers("123");
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.user.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await searchUsers("test");
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("sendMessage 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
+      const result = await sendMessage(2, "Hello");
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getConversations 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+      mockPrisma.conversationParticipant.findMany.mockRejectedValue(
+        new Error("DB error"),
+      );
+      const result = await getConversations();
+      expect(result.success).toBe(false);
     });
   });
 });

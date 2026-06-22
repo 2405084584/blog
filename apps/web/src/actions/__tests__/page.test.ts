@@ -373,4 +373,190 @@ describe("page actions", () => {
       expect(result.success).toBe(false);
     });
   });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("getPagesList 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getPagesList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPageDetail 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getPageDetail(
+        { access_token: "token", id: "page-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getPageDetail(
+        { access_token: "token", id: "page-1" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createPage 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createPage(
+        { access_token: "token", title: "New Page", slug: "new" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createPage(
+        { access_token: "token", title: "New Page", slug: "new" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updatePage 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updatePage(
+        { access_token: "token", id: "page-1", title: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await updatePage(
+        { access_token: "token", id: "page-1", title: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updatePages 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updatePages(
+        { access_token: "token", ids: ["page-1"], status: "SUSPENDED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await updatePages(
+        { access_token: "token", ids: ["page-1"], status: "SUSPENDED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deletePages 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deletePages(
+        { access_token: "token", ids: ["page-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deletePages(
+        { access_token: "token", ids: ["page-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getPagesList 分支", () => {
+    it("带 search 过滤", async () => {
+      mockAuthSuccess();
+      mockPrismaPageFindMany.mockResolvedValue([]);
+      mockPrismaPageCount.mockResolvedValue(0);
+      const result = await getPagesList(
+        { access_token: "token", search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPageFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getPagesList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createPage 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPageFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await createPage(
+        { access_token: "token", title: "New Page", slug: "new-page" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updatePage 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPageFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updatePage(
+        { access_token: "token", id: "page-1", title: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updatePages 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPageFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await updatePages(
+        { access_token: "token", ids: ["page-1"], status: "ACTIVE" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deletePages 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPageFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deletePages(
+        { access_token: "token", ids: ["page-1"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
 });

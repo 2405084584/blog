@@ -385,4 +385,69 @@ describe("auto-update actions", () => {
       );
     });
   });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getAutoUpdateOverview 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      setupAutoUpdateConfig();
+      vi.mocked(prisma.config.findMany).mockRejectedValue(
+        new Error("DB error"),
+      );
+
+      const { getAutoUpdateOverview } = await import("@/actions/auto-update");
+      const result = await getAutoUpdateOverview({
+        access_token: "valid-token",
+      });
+
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("updateAutoUpdateConfig 分支", () => {
+    it("速率限制触发返回 429", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+
+      const { updateAutoUpdateConfig } = await import("@/actions/auto-update");
+      const result = await updateAutoUpdateConfig({
+        access_token: "valid-token",
+        mode: "REPOSITORY",
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      setupAutoUpdateConfig();
+      vi.mocked(prisma.$transaction).mockRejectedValue(new Error("DB error"));
+
+      const { updateAutoUpdateConfig } = await import("@/actions/auto-update");
+      const result = await updateAutoUpdateConfig({
+        access_token: "valid-token",
+        mode: "CONTAINER",
+      });
+
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("getRuntimeVersionInfo 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.config.findMany).mockRejectedValue(
+        new Error("DB error"),
+      );
+
+      const { getRuntimeVersionInfo } = await import("@/actions/auto-update");
+      const result = await getRuntimeVersionInfo({
+        access_token: "valid-token",
+      });
+
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
 });

@@ -39,6 +39,7 @@ const mockPrisma = {
     findMany: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),
+    groupBy: vi.fn(),
   },
   $queryRaw: vi.fn(),
   $queryRawUnsafe: vi.fn(),
@@ -50,8 +51,9 @@ vi.mock("@/lib/server/audit", () => ({
   logAuditEvent: vi.fn(),
 }));
 
+const mockAnalyzeText = vi.fn().mockResolvedValue(["token1", "token2"]);
 vi.mock("@/lib/server/tokenizer", () => ({
-  analyzeText: vi.fn().mockResolvedValue(["token1", "token2"]),
+  analyzeText: (...args: unknown[]) => mockAnalyzeText(...args),
 }));
 
 vi.mock("@/lib/server/search", () => ({
@@ -96,136 +98,679 @@ vi.mock("@/lib/server/cache", () => ({
 // ============ Tests ============
 
 describe("search actions", () => {
+  let testTokenize: typeof import("@/actions/search").testTokenize;
   let addCustomWord: typeof import("@/actions/search").addCustomWord;
   let getCustomWords: typeof import("@/actions/search").getCustomWords;
   let deleteCustomWord: typeof import("@/actions/search").deleteCustomWord;
+  let indexPosts: typeof import("@/actions/search").indexPosts;
+  let deleteIndex: typeof import("@/actions/search").deleteIndex;
+  let getIndexStatus: typeof import("@/actions/search").getIndexStatus;
   let searchPosts: typeof import("@/actions/search").searchPosts;
   let searchSite: typeof import("@/actions/search").searchSite;
+  let getPostTokenDetails: typeof import("@/actions/search").getPostTokenDetails;
+  let getSearchIndexStats: typeof import("@/actions/search").getSearchIndexStats;
+  let getSearchLogStats: typeof import("@/actions/search").getSearchLogStats;
+  let getSearchLogs: typeof import("@/actions/search").getSearchLogs;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
     mockLimitControl.mockResolvedValue(true);
+    mockAuthVerify.mockResolvedValue(null);
+    mockAnalyzeText.mockResolvedValue(["token1", "token2"]);
+
     const mod = await import("@/actions/search");
+    testTokenize = mod.testTokenize;
     addCustomWord = mod.addCustomWord;
     getCustomWords = mod.getCustomWords;
     deleteCustomWord = mod.deleteCustomWord;
+    indexPosts = mod.indexPosts;
+    deleteIndex = mod.deleteIndex;
+    getIndexStatus = mod.getIndexStatus;
     searchPosts = mod.searchPosts;
     searchSite = mod.searchSite;
+    getPostTokenDetails = mod.getPostTokenDetails;
+    getSearchIndexStats = mod.getSearchIndexStats;
+    getSearchLogStats = mod.getSearchLogStats;
+    getSearchLogs = mod.getSearchLogs;
   });
 
-  // ---------- addCustomWord ----------
+  // ==================== testTokenize ====================
+
+  describe("testTokenize", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await testTokenize({ text: "测试文本" });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("认证", () => {
+      it("未登录时应返回未授权", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn(() => undefined),
+          })),
+        }));
+        const result = await testTokenize({ text: "测试文本" });
+        expect(result.success).toBe(false);
+      });
+
+      it("非管理员/编辑应返回未授权", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue(null);
+        const result = await testTokenize({ text: "测试文本" });
+        expect(result.success).toBe(false);
+      });
+
+      it("管理员可以使用", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockAnalyzeText.mockResolvedValue(["测试", "文本"]);
+        const result = await testTokenize({ text: "测试文本" });
+        expect(result.success).toBe(true);
+        expect(result.data.tokens).toEqual(["测试", "文本"]);
+      });
+
+      it("编辑可以使用", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 2, role: "EDITOR" });
+        mockAnalyzeText.mockResolvedValue(["hello"]);
+        const result = await testTokenize({ text: "hello" });
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe("返回数据", () => {
+      it("应返回 tokens 数组和数量", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockAnalyzeText.mockResolvedValue(["中", "文", "分词"]);
+        const result = await testTokenize({ text: "中文分词" });
+        expect(result.success).toBe(true);
+        expect(result.data.tokens).toEqual(["中", "文", "分词"]);
+        expect(result.data.count).toBe(3);
+        expect(result.data.text).toBe("中文分词");
+      });
+
+      it("应返回执行时间", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        const result = await testTokenize({ text: "test" });
+        expect(result.success).toBe(true);
+        expect(typeof result.data.duration).toBe("number");
+      });
+    });
+
+    describe("错误处理", () => {
+      it("分词失败时应返回服务器错误", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockAnalyzeText.mockRejectedValue(new Error("分词器不可用"));
+        const result = await testTokenize({ text: "test" });
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
+  // ==================== addCustomWord ====================
 
   describe("addCustomWord", () => {
-    it("速率限制时应返回 429", async () => {
-      mockLimitControl.mockResolvedValue(false);
-      const result = await addCustomWord({ word: "test" });
-      expect(result.success).toBe(false);
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await addCustomWord({ word: "test" });
+        expect(result.success).toBe(false);
+      });
     });
 
-    it("包含空格时应返回 400", async () => {
-      // The function gets token from dynamic import of next/headers
-      // Mock cookies for dynamic import
-      vi.doMock("next/headers", () => ({
-        headers: vi.fn().mockReturnValue(new Headers()),
-        cookies: vi.fn(() => ({
-          get: vi.fn((name: string) => {
-            if (name === "ACCESS_TOKEN") return { value: "test-token" };
-            return undefined;
-          }),
-        })),
-      }));
-      const result = await addCustomWord({ word: "has space" });
-      expect(result.success).toBe(false);
-    });
-
-    it("添加已存在的词时应返回冲突", async () => {
-      vi.doMock("next/headers", () => ({
-        headers: vi.fn().mockReturnValue(new Headers()),
-        cookies: vi.fn(() => ({
-          get: vi.fn((name: string) => {
-            if (name === "ACCESS_TOKEN") return { value: "test-token" };
-            return undefined;
-          }),
-        })),
-      }));
-      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
-      mockPrisma.customDictionary.findUnique.mockResolvedValue({
-        id: 1,
-        word: "test",
+    describe("输入验证", () => {
+      it("包含空格时应返回失败", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        const result = await addCustomWord({ word: "has space" });
+        expect(result.success).toBe(false);
       });
 
-      const result = await addCustomWord({ word: "test" });
-      expect(result.success).toBe(false);
+      it("空字符串应返回失败", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        const result = await addCustomWord({ word: "" });
+        expect(result.success).toBe(false);
+      });
     });
 
-    it("成功添加自定义词", async () => {
-      vi.doMock("next/headers", () => ({
-        headers: vi.fn().mockReturnValue(new Headers()),
-        cookies: vi.fn(() => ({
-          get: vi.fn((name: string) => {
-            if (name === "ACCESS_TOKEN") return { value: "test-token" };
-            return undefined;
-          }),
-        })),
-      }));
-      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
-      mockPrisma.customDictionary.findUnique.mockResolvedValue(null);
-      mockPrisma.customDictionary.create.mockResolvedValue({
-        id: 1,
-        word: "newword",
+    describe("认证", () => {
+      it("非管理员应返回未授权", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue(null);
+        const result = await addCustomWord({ word: "test" });
+        expect(result.success).toBe(false);
       });
-      mockPrisma.$queryRawUnsafe.mockResolvedValue([]);
+    });
 
-      const result = await addCustomWord({ word: "newword" });
-      expect(result.success).toBe(true);
-      expect(result.data.word).toBe("newword");
-      expect(result.data.added).toBe(true);
+    describe("业务逻辑", () => {
+      it("已存在的词应返回冲突", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.customDictionary.findUnique.mockResolvedValue({
+          id: 1,
+          word: "test",
+        });
+        const result = await addCustomWord({ word: "test" });
+        expect(result.success).toBe(false);
+      });
+
+      it("成功添加新词", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.customDictionary.findUnique.mockResolvedValue(null);
+        mockPrisma.customDictionary.create.mockResolvedValue({
+          id: 1,
+          word: "newword",
+        });
+        mockPrisma.$queryRawUnsafe.mockResolvedValue([]);
+        const result = await addCustomWord({ word: "newword" });
+        expect(result.success).toBe(true);
+        expect(result.data.word).toBe("newword");
+        expect(result.data.added).toBe(true);
+      });
     });
   });
 
-  // ---------- getCustomWords ----------
+  // ==================== getCustomWords ====================
 
   describe("getCustomWords", () => {
-    it("速率限制时应返回 429", async () => {
-      mockLimitControl.mockResolvedValue(false);
-      const result = await getCustomWords({});
-      expect(result.success).toBe(false);
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await getCustomWords({});
+        expect(result.success).toBe(false);
+      });
     });
 
-    it("成功获取词典列表", async () => {
-      vi.doMock("next/headers", () => ({
-        headers: vi.fn().mockReturnValue(new Headers()),
-        cookies: vi.fn(() => ({
-          get: vi.fn((name: string) => {
-            if (name === "ACCESS_TOKEN") return { value: "test-token" };
-            return undefined;
-          }),
-        })),
-      }));
-      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
-      mockPrisma.customDictionary.findMany.mockResolvedValue([
-        { id: 1, word: "word1", createdAt: new Date("2024-01-01") },
-      ]);
+    describe("认证", () => {
+      it("非管理员应返回未授权", async () => {
+        mockAuthVerify.mockResolvedValue(null);
+        const result = await getCustomWords({});
+        expect(result.success).toBe(false);
+      });
+    });
 
-      const result = await getCustomWords({});
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
+    describe("返回数据", () => {
+      it("成功获取词典列表", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.customDictionary.findMany.mockResolvedValue([
+          { id: 1, word: "word1", createdAt: new Date("2024-01-01") },
+          { id: 2, word: "word2", createdAt: new Date("2024-01-02") },
+        ]);
+        const result = await getCustomWords({});
+        expect(result.success).toBe(true);
+        expect(result.data).toHaveLength(2);
+      });
+
+      it("空列表应正常返回", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.customDictionary.findMany.mockResolvedValue([]);
+        const result = await getCustomWords({});
+        expect(result.success).toBe(true);
+        expect(result.data).toHaveLength(0);
+      });
     });
   });
 
-  // ---------- deleteCustomWord ----------
+  // ==================== deleteCustomWord ====================
 
   describe("deleteCustomWord", () => {
-    it("词汇不存在时应返回 404", async () => {
-      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
-      mockPrisma.customDictionary.findUnique.mockResolvedValue(null);
-
-      const result = await deleteCustomWord({ id: 999 });
-      expect(result.success).toBe(false);
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await deleteCustomWord({ id: 1 });
+        expect(result.success).toBe(false);
+      });
     });
 
-    it("成功删除自定义词", async () => {
+    describe("认证", () => {
+      it("非管理员应返回未授权", async () => {
+        mockAuthVerify.mockResolvedValue(null);
+        const result = await deleteCustomWord({ id: 1 });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("词汇不存在时应返回 404", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.customDictionary.findUnique.mockResolvedValue(null);
+        const result = await deleteCustomWord({ id: 999 });
+        expect(result.success).toBe(false);
+      });
+
+      it("成功删除词汇", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.customDictionary.findUnique.mockResolvedValue({
+          id: 1,
+          word: "test",
+        });
+        mockPrisma.$queryRawUnsafe.mockResolvedValue([]);
+        mockPrisma.customDictionary.delete.mockResolvedValue({});
+        const result = await deleteCustomWord({ id: 1 });
+        expect(result.success).toBe(true);
+        expect(result.data.deleted).toBe(true);
+      });
+    });
+  });
+
+  // ==================== indexPosts ====================
+
+  describe("indexPosts", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await indexPosts({});
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("认证", () => {
+      it("非管理员应返回未授权", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue(null);
+        const result = await indexPosts({});
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("无文章时应返回 404", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.post.findMany.mockResolvedValue([]);
+        const result = await indexPosts({});
+        expect(result.success).toBe(false);
+      });
+
+      it("成功索引文章", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.post.findMany.mockResolvedValue([
+          {
+            id: 1,
+            slug: "test-post",
+            title: "测试文章",
+            content: "内容",
+            postMode: "MARKDOWN",
+          },
+        ]);
+        mockPrisma.$executeRaw.mockResolvedValue(undefined);
+        const result = await indexPosts({});
+        expect(result.success).toBe(true);
+        expect(result.data.indexed).toBe(1);
+      });
+
+      it("指定 slugs 应只索引指定文章", async () => {
+        vi.doMock("next/headers", () => ({
+          headers: vi.fn().mockReturnValue(new Headers()),
+          cookies: vi.fn(() => ({
+            get: vi.fn((name: string) => {
+              if (name === "ACCESS_TOKEN") return { value: "test-token" };
+              return undefined;
+            }),
+          })),
+        }));
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+        mockPrisma.post.findMany.mockResolvedValue([
+          {
+            id: 1,
+            slug: "post-1",
+            title: "文章1",
+            content: "内容1",
+            postMode: "MARKDOWN",
+          },
+        ]);
+        mockPrisma.$executeRaw.mockResolvedValue(undefined);
+        const result = await indexPosts({ slugs: ["post-1"] });
+        expect(result.success).toBe(true);
+        expect(mockPrisma.post.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { slug: { in: ["post-1"] } },
+          }),
+        );
+      });
+    });
+  });
+
+  // ==================== searchPosts ====================
+
+  describe("searchPosts", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await searchPosts({ query: "test" });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("无分词结果时返回空", async () => {
+        mockAnalyzeText.mockResolvedValueOnce([]);
+        const result = await searchPosts({ query: "  " });
+        expect(result.success).toBe(true);
+        expect(result.data.posts).toHaveLength(0);
+      });
+
+      it("搜索无结果时返回空列表", async () => {
+        mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+          { count: BigInt(0) },
+        ]);
+        const result = await searchPosts({ query: "nonexistent" });
+        expect(result.success).toBe(true);
+        expect(result.data.posts).toHaveLength(0);
+      });
+
+      it("应返回正确的结果结构", async () => {
+        mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+          { count: BigInt(0) },
+        ]);
+        const result = await searchPosts({ query: "test" });
+        expect(result.success).toBe(true);
+        expect(result.data).toHaveProperty("posts");
+      });
+    });
+  });
+
+  // ==================== searchSite ====================
+
+  describe("searchSite", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await searchSite({ query: "test" });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("输入验证", () => {
+      it("空查询应返回失败", async () => {
+        const result = await searchSite({ query: "   " });
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("deleteIndex", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const mod = await import("@/actions/search");
+      const result = await mod.deleteIndex({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getIndexStatus", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const mod = await import("@/actions/search");
+      const result = await mod.getIndexStatus({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchIndexStats", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const mod = await import("@/actions/search");
+      const result = await mod.getSearchIndexStats({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchLogStats", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const mod = await import("@/actions/search");
+      const result = await mod.getSearchLogStats({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchLogs", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const mod = await import("@/actions/search");
+      const result = await mod.getSearchLogs({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostTokenDetails", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const mod = await import("@/actions/search");
+      const result = await mod.getPostTokenDetails({ slug: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteIndex 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const mod = await import("@/actions/search");
+      const result = await mod.deleteIndex({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getIndexStatus 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const mod = await import("@/actions/search");
+      const result = await mod.getIndexStatus({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchIndexStats 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const mod = await import("@/actions/search");
+      const result = await mod.getSearchIndexStats({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchLogStats 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const mod = await import("@/actions/search");
+      const result = await mod.getSearchLogStats({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchLogs 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const mod = await import("@/actions/search");
+      const result = await mod.getSearchLogs({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostTokenDetails 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const mod = await import("@/actions/search");
+      const result = await mod.getPostTokenDetails({ slug: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("testTokenize 补充测试", () => {
+    it("未登录时应返回未授权", async () => {
+      vi.doMock("next/headers", () => ({
+        headers: vi.fn().mockReturnValue(new Headers()),
+        cookies: vi.fn(() => ({
+          get: vi.fn(() => undefined),
+        })),
+      }));
+      const result = await testTokenize({ text: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("addCustomWord 补充测试", () => {
+    it("已存在的词应返回冲突", async () => {
       vi.doMock("next/headers", () => ({
         headers: vi.fn().mockReturnValue(new Headers()),
         cookies: vi.fn(() => ({
@@ -240,77 +785,14 @@ describe("search actions", () => {
         id: 1,
         word: "test",
       });
-      mockPrisma.$queryRawUnsafe.mockResolvedValue([]);
-      mockPrisma.customDictionary.delete.mockResolvedValue({});
 
-      const result = await deleteCustomWord({ id: 1 });
-      expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(true);
-    });
-  });
-
-  // ---------- searchPosts ----------
-
-  describe("searchPosts", () => {
-    it("速率限制时应返回 429", async () => {
-      mockLimitControl.mockResolvedValue(false);
-      const result = await searchPosts({ query: "test" });
-      expect(result.success).toBe(false);
-    });
-
-    it("无分词结果时返回空", async () => {
-      const { analyzeText } = await import("@/lib/server/tokenizer");
-      (analyzeText as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
-
-      const result = await searchPosts({ query: "  " });
-      expect(result.success).toBe(true);
-      expect(result.data.posts).toHaveLength(0);
-    });
-
-    it("搜索无结果时返回空列表", async () => {
-      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([{ count: BigInt(0) }]);
-
-      const result = await searchPosts({ query: "nonexistent" });
-      expect(result.success).toBe(true);
-      expect(result.data.posts).toHaveLength(0);
-    });
-  });
-
-  // ---------- searchSite ----------
-
-  describe("searchSite", () => {
-    it("速率限制时应返回 429", async () => {
-      mockLimitControl.mockResolvedValue(false);
-      const result = await searchSite({ query: "test" });
-      expect(result.success).toBe(false);
-    });
-
-    it("空查询应返回 400（验证失败）", async () => {
-      const result = await searchSite({ query: "   " });
-      // search-site schema requires min(1) after trim, so whitespace-only should fail
-      expect(result.success).toBe(false);
-    });
-  });
-
-  // ---------- 补充测试 ----------
-
-  describe("addCustomWord 补充测试", () => {
-    it("速率限制时应返回 429", async () => {
-      vi.doMock("next/headers", () => ({
-        headers: vi.fn().mockReturnValue(new Headers()),
-        cookies: vi.fn(() => ({
-          get: vi.fn((name: string) => {
-            if (name === "ACCESS_TOKEN") return { value: "test-token" };
-            return undefined;
-          }),
-        })),
-      }));
-      mockLimitControl.mockResolvedValue(false);
       const result = await addCustomWord({ word: "test" });
       expect(result.success).toBe(false);
     });
+  });
 
-    it("应验证输入格式", async () => {
+  describe("deleteCustomWord 补充测试 2", () => {
+    it("未认证时应返回未授权", async () => {
       vi.doMock("next/headers", () => ({
         headers: vi.fn().mockReturnValue(new Headers()),
         cookies: vi.fn(() => ({
@@ -320,13 +802,22 @@ describe("search actions", () => {
           }),
         })),
       }));
-      const result = await addCustomWord({ word: "" });
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteCustomWord({ id: 1 });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("searchSite 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await searchSite({ query: "test" });
       expect(result.success).toBe(false);
     });
   });
 
   describe("getCustomWords 补充测试", () => {
-    it("返回空列表时应正常工作", async () => {
+    it("非管理员应返回未授权", async () => {
       vi.doMock("next/headers", () => ({
         headers: vi.fn().mockReturnValue(new Headers()),
         cookies: vi.fn(() => ({
@@ -336,51 +827,163 @@ describe("search actions", () => {
           }),
         })),
       }));
-      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
-      mockPrisma.customDictionary.findMany.mockResolvedValue([]);
-
+      mockAuthVerify.mockResolvedValue(null);
       const result = await getCustomWords({});
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(0);
-    });
-
-    it("返回多个词时应正常工作", async () => {
-      vi.doMock("next/headers", () => ({
-        headers: vi.fn().mockReturnValue(new Headers()),
-        cookies: vi.fn(() => ({
-          get: vi.fn((name: string) => {
-            if (name === "ACCESS_TOKEN") return { value: "test-token" };
-            return undefined;
-          }),
-        })),
-      }));
-      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
-      mockPrisma.customDictionary.findMany.mockResolvedValue([
-        { id: 1, word: "word1", createdAt: new Date("2024-01-01") },
-        { id: 2, word: "word2", createdAt: new Date("2024-01-02") },
-      ]);
-
-      const result = await getCustomWords({});
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
-    });
-  });
-
-  describe("deleteCustomWord 补充测试", () => {
-    it("速率限制时应返回 429", async () => {
-      mockLimitControl.mockResolvedValue(false);
-      const result = await deleteCustomWord({ id: 1 });
       expect(result.success).toBe(false);
     });
   });
 
   describe("searchPosts 补充测试", () => {
-    it("应返回正确的结果结构", async () => {
-      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([{ count: BigInt(0) }]);
-
+    it("数据库错误时返回失败", async () => {
+      mockPrisma.$queryRawUnsafe.mockRejectedValue(new Error("DB error"));
       const result = await searchPosts({ query: "test" });
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty("posts");
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("searchSite 补充测试 2", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.post.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await searchSite({ query: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("testTokenize 补充测试 2", () => {
+    it("非管理员应返回未授权", async () => {
+      vi.doMock("next/headers", () => ({
+        headers: vi.fn().mockReturnValue(new Headers()),
+        cookies: vi.fn(() => ({
+          get: vi.fn(() => undefined),
+        })),
+      }));
+      const result = await testTokenize({ text: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("addCustomWord 补充测试 2", () => {
+    it("非管理员应返回未授权", async () => {
+      vi.doMock("next/headers", () => ({
+        headers: vi.fn().mockReturnValue(new Headers()),
+        cookies: vi.fn(() => ({
+          get: vi.fn((name: string) => {
+            if (name === "ACCESS_TOKEN") return { value: "test-token" };
+            return undefined;
+          }),
+        })),
+      }));
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await addCustomWord({ word: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("searchPosts 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await searchPosts({ query: "test" });
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockPrisma.$queryRaw.mockRejectedValue(new Error("DB error"));
+      const result = await searchPosts({ query: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("searchSite 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await searchSite({ query: "test" });
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockPrisma.$queryRaw.mockRejectedValue(new Error("DB error"));
+      const result = await searchSite({ query: "test" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchLogs 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getSearchLogs({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.searchLog.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await getSearchLogs({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getSearchLogStats 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getSearchLogStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.searchLog.count.mockRejectedValue(new Error("DB error"));
+      const result = await getSearchLogStats({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCustomWords 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCustomWords({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.customDictionary.findMany.mockRejectedValue(
+        new Error("DB error"),
+      );
+      const result = await getCustomWords({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteCustomWord 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.customDictionary.delete.mockRejectedValue(
+        new Error("DB error"),
+      );
+      const result = await deleteCustomWord({
+        access_token: "token",
+        id: 1,
+      });
+      expect(result.success).toBe(false);
     });
   });
 });

@@ -434,4 +434,321 @@ describe("storage actions", () => {
       );
     });
   });
+
+  // ==================== updateStorage 补充测试 ====================
+
+  describe("updateStorage", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const { updateStorage } = await import("@/actions/storage");
+      const result = await updateStorage({
+        access_token: "valid-token",
+        id: "storage-1",
+        name: "updated",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+
+    it("未授权时应返回失败", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const { updateStorage } = await import("@/actions/storage");
+      const result = await updateStorage({
+        access_token: "invalid-token",
+        id: "storage-1",
+        name: "updated",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+
+    it("存储不存在时应返回 404", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findUnique).mockResolvedValue(null);
+      const { updateStorage } = await import("@/actions/storage");
+      const result = await updateStorage({
+        access_token: "valid-token",
+        id: "nonexistent",
+        name: "updated",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 404 }),
+      );
+    });
+
+    it("虚拟存储不允许修改", async () => {
+      setupSuccessMocks();
+      mockIsVirtualStorage.mockReturnValue(true);
+      vi.mocked(prisma.storageProvider.findUnique).mockResolvedValue(
+        mockStorageProvider() as never,
+      );
+      const { updateStorage } = await import("@/actions/storage");
+      const result = await updateStorage({
+        access_token: "valid-token",
+        id: "storage-1",
+        name: "updated",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 403 }),
+      );
+    });
+
+    it("成功更新存储", async () => {
+      setupSuccessMocks();
+      mockIsVirtualStorage.mockReturnValue(false);
+      vi.mocked(prisma.storageProvider.findUnique).mockResolvedValue(
+        mockStorageProvider() as never,
+      );
+      vi.mocked(prisma.storageProvider.update).mockResolvedValue(
+        mockStorageProvider({ name: "updated" }) as never,
+      );
+      const { updateStorage } = await import("@/actions/storage");
+      const result = await updateStorage({
+        access_token: "valid-token",
+        id: "storage-1",
+        name: "updated",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: true }));
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getStorageList 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+      const { getStorageList } = await import("@/actions/storage");
+      const result = await getStorageList({ access_token: "valid-token" });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findMany).mockRejectedValue(
+        new Error("DB error"),
+      );
+      const { getStorageList } = await import("@/actions/storage");
+      const result = await getStorageList({ access_token: "valid-token" });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("getStorageDetail 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+      const { getStorageDetail } = await import("@/actions/storage");
+      const result = await getStorageDetail({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockLimitControl.mockResolvedValue(true as never);
+      mockValidateData.mockReturnValue(null as never);
+      mockAuthVerify.mockResolvedValue(null as never);
+      const { getStorageDetail } = await import("@/actions/storage");
+      const result = await getStorageDetail({
+        access_token: "invalid",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 401 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findUnique).mockRejectedValue(
+        new Error("DB error"),
+      );
+      const { getStorageDetail } = await import("@/actions/storage");
+      const result = await getStorageDetail({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("createStorage 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+      const { createStorage } = await import("@/actions/storage");
+      const result = await createStorage({
+        access_token: "valid-token",
+        name: "New",
+        type: "LOCAL",
+        displayName: "New",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockLimitControl.mockResolvedValue(true as never);
+      mockValidateData.mockReturnValue(null as never);
+      mockAuthVerify.mockResolvedValue(null as never);
+      const { createStorage } = await import("@/actions/storage");
+      const result = await createStorage({
+        access_token: "invalid",
+        name: "New",
+        type: "LOCAL",
+        displayName: "New",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 401 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.create).mockRejectedValue(
+        new Error("DB error"),
+      );
+      const { createStorage } = await import("@/actions/storage");
+      const result = await createStorage({
+        access_token: "valid-token",
+        name: "New",
+        type: "LOCAL",
+        displayName: "New",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("deleteStorage 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+      const { deleteStorage } = await import("@/actions/storage");
+      const result = await deleteStorage({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockLimitControl.mockResolvedValue(true as never);
+      mockValidateData.mockReturnValue(null as never);
+      mockAuthVerify.mockResolvedValue(null as never);
+      const { deleteStorage } = await import("@/actions/storage");
+      const result = await deleteStorage({ access_token: "invalid", id: "s1" });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 401 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findUnique).mockRejectedValue(
+        new Error("DB error"),
+      );
+      const { deleteStorage } = await import("@/actions/storage");
+      const result = await deleteStorage({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("toggleStorageStatus 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+      const { toggleStorageStatus } = await import("@/actions/storage");
+      const result = await toggleStorageStatus({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockLimitControl.mockResolvedValue(true as never);
+      mockValidateData.mockReturnValue(null as never);
+      mockAuthVerify.mockResolvedValue(null as never);
+      const { toggleStorageStatus } = await import("@/actions/storage");
+      const result = await toggleStorageStatus({
+        access_token: "invalid",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 401 }),
+      );
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findUnique).mockRejectedValue(
+        new Error("DB error"),
+      );
+      const { toggleStorageStatus } = await import("@/actions/storage");
+      const result = await toggleStorageStatus({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe("setDefaultStorage 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false as never);
+      const { setDefaultStorage } = await import("@/actions/storage");
+      const result = await setDefaultStorage({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 429 }),
+      );
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockLimitControl.mockResolvedValue(true as never);
+      mockValidateData.mockReturnValue(null as never);
+      mockAuthVerify.mockResolvedValue(null as never);
+      const { setDefaultStorage } = await import("@/actions/storage");
+      const result = await setDefaultStorage({
+        access_token: "invalid",
+        id: "s1",
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ success: false, status: 401 }),
+      );
+    });
+
+    it("未找到存储提供者返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findUnique).mockResolvedValue(null);
+      const { setDefaultStorage } = await import("@/actions/storage");
+      const result = await setDefaultStorage({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+
+    it("数据库错误时返回失败", async () => {
+      setupSuccessMocks();
+      vi.mocked(prisma.storageProvider.findUnique).mockRejectedValue(
+        new Error("DB error"),
+      );
+      const { setDefaultStorage } = await import("@/actions/storage");
+      const result = await setDefaultStorage({
+        access_token: "valid-token",
+        id: "s1",
+      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
+    });
+  });
 });

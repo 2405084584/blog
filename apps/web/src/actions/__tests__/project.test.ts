@@ -89,8 +89,11 @@ describe("project actions", () => {
   let getProjectsList: typeof import("@/actions/project").getProjectsList;
   let getProjectDetail: typeof import("@/actions/project").getProjectDetail;
   let createProject: typeof import("@/actions/project").createProject;
+  let updateProject: typeof import("@/actions/project").updateProject;
+  let updateProjects: typeof import("@/actions/project").updateProjects;
   let deleteProjects: typeof import("@/actions/project").deleteProjects;
   let getProjectsTrends: typeof import("@/actions/project").getProjectsTrends;
+  let syncProjectsGithub: typeof import("@/actions/project").syncProjectsGithub;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -100,8 +103,11 @@ describe("project actions", () => {
     getProjectsList = mod.getProjectsList;
     getProjectDetail = mod.getProjectDetail;
     createProject = mod.createProject;
+    updateProject = mod.updateProject;
+    updateProjects = mod.updateProjects;
     deleteProjects = mod.deleteProjects;
     getProjectsTrends = mod.getProjectsTrends;
+    syncProjectsGithub = mod.syncProjectsGithub;
   });
 
   // ---------- getProjectsTrends ----------
@@ -405,6 +411,233 @@ describe("project actions", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getProjectsTrends({ access_token: "token" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==================== updateProject 补充测试 ====================
+
+  describe("updateProject", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateProject(
+        { access_token: "token", id: 1, title: "更新" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateProject(
+        { access_token: "token", id: 1, title: "更新" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("项目不存在时应返回 404", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findUnique.mockResolvedValue(null);
+      const result = await updateProject(
+        { access_token: "token", id: 999, title: "更新" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("AUTHOR 不能修改他人项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 3, role: "AUTHOR" });
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 1,
+        userUid: 999,
+        slug: "test",
+      });
+      const result = await updateProject(
+        { access_token: "token", id: 1, title: "更新" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("成功更新项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 1,
+        userUid: 1,
+        slug: "test",
+      });
+      mockPrisma.project.update.mockResolvedValue({
+        id: 1,
+        slug: "test",
+        title: "更新后的项目",
+      });
+      const result = await updateProject(
+        { access_token: "token", id: 1, slug: "test", title: "更新后的项目" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteProjects 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteProjects(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await deleteProjects(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("updateProjects 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateProjects(
+        { access_token: "token", ids: [1], status: "PUBLISHED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await updateProjects(
+        { access_token: "token", ids: [1], status: "PUBLISHED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("成功批量更新项目状态", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.updateMany.mockResolvedValue({ count: 2 });
+      const result = await updateProjects(
+        { access_token: "token", ids: [1, 2], status: "PUBLISHED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.updateMany.mockRejectedValue(new Error("DB error"));
+      const result = await updateProjects(
+        { access_token: "token", ids: [1], status: "PUBLISHED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("syncProjectsGithub 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await syncProjectsGithub(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await syncProjectsGithub(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("成功同步 GitHub 项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      const { runProjectsGithubSync } = await import(
+        "@/lib/server/cron-task-runner"
+      );
+      vi.mocked(runProjectsGithubSync).mockResolvedValue({
+        synced: 3,
+        failed: 0,
+        results: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      });
+      const result = await syncProjectsGithub(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getProjectsList 分支", () => {
+    it("AUTHOR 角色过滤到自己的项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrisma.project.findMany.mockResolvedValue([]);
+      mockPrisma.project.count.mockResolvedValue(0);
+      const result = await getProjectsList(
+        { access_token: "token", page: 1, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 search 过滤", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockResolvedValue([]);
+      mockPrisma.project.count.mockResolvedValue(0);
+      const result = await getProjectsList(
+        { access_token: "token", page: 1, pageSize: 20, search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await getProjectsList(
+        { access_token: "token", page: 1, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createProject 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await createProject(
+        {
+          access_token: "token",
+          title: "Test",
+          content: "Content",
+          status: "DRAFT",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateProject 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateProject(
+        { access_token: "token", id: 1, title: "Updated" },
+        { environment: "serveraction" },
+      );
       expect(result.success).toBe(false);
     });
   });

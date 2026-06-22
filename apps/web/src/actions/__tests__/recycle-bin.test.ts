@@ -82,6 +82,7 @@ describe("recycle-bin actions", () => {
   let restoreRecycleBinItems: typeof import("@/actions/recycle-bin").restoreRecycleBinItems;
   let purgeRecycleBinItems: typeof import("@/actions/recycle-bin").purgeRecycleBinItems;
   let clearRecycleBin: typeof import("@/actions/recycle-bin").clearRecycleBin;
+  let restoreAllProjectsFromRecycleBin: typeof import("@/actions/recycle-bin").restoreAllProjectsFromRecycleBin;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -104,6 +105,7 @@ describe("recycle-bin actions", () => {
     restoreRecycleBinItems = mod.restoreRecycleBinItems;
     purgeRecycleBinItems = mod.purgeRecycleBinItems;
     clearRecycleBin = mod.clearRecycleBin;
+    restoreAllProjectsFromRecycleBin = mod.restoreAllProjectsFromRecycleBin;
   });
 
   // ---------- getRecycleBinList ----------
@@ -374,6 +376,198 @@ describe("recycle-bin actions", () => {
       const result = await purgeRecycleBinItems({
         access_token: "token",
         items: [{ resourceType: "POST", id: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==================== restoreAllProjectsFromRecycleBin ====================
+
+  describe("restoreAllProjectsFromRecycleBin", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await restoreAllProjectsFromRecycleBin({
+        access_token: "token",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthVerify.mockResolvedValue(null);
+      const result = await restoreAllProjectsFromRecycleBin({
+        access_token: "token",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("成功恢复所有项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockResolvedValue([
+        { id: 1, deletedAt: new Date() },
+        { id: 2, deletedAt: new Date() },
+      ]);
+      mockPrisma.project.updateMany.mockResolvedValue({ count: 2 });
+      const result = await restoreAllProjectsFromRecycleBin({
+        access_token: "token",
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getRecycleBinList 分支", () => {
+    it("AUTHOR 角色过滤自己的项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrisma.project.findMany.mockResolvedValue([]);
+      mockPrisma.post.findMany.mockResolvedValue([]);
+      mockPrisma.comment.findMany.mockResolvedValue([]);
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      const result = await getRecycleBinList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("带 search 过滤", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockResolvedValue([]);
+      mockPrisma.friendLink.findMany.mockResolvedValue([]);
+      mockPrisma.post.findMany.mockResolvedValue([]);
+      mockPrisma.page.findMany.mockResolvedValue([]);
+      mockPrisma.comment.findMany.mockResolvedValue([]);
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockPrisma.message.findMany.mockResolvedValue([]);
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      const result = await getRecycleBinList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+        search: "test",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await getRecycleBinList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getRecycleBinStats 分支", () => {
+    it("AUTHOR 角色过滤", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrisma.project.count.mockResolvedValue(0);
+      mockPrisma.post.count.mockResolvedValue(0);
+      mockPrisma.comment.count.mockResolvedValue(0);
+      const result = await getRecycleBinStats({
+        access_token: "token",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.count.mockRejectedValue(new Error("DB error"));
+      const result = await getRecycleBinStats({
+        access_token: "token",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("restoreRecycleBinItems 分支", () => {
+    it("AUTHOR 角色恢复自己的项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrisma.project.findMany.mockResolvedValue([{ id: 1 }]);
+      mockPrisma.project.updateMany.mockResolvedValue({ count: 1 });
+      const result = await restoreRecycleBinItems({
+        access_token: "token",
+        items: [{ resourceType: "PROJECT", id: 1 }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await restoreRecycleBinItems({
+        access_token: "token",
+        items: [{ resourceType: "PROJECT", id: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("purgeRecycleBinItems 分支", () => {
+    it("AUTHOR 角色清除自己的项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrisma.project.findMany.mockResolvedValue([{ id: 1 }]);
+      mockPrisma.project.deleteMany.mockResolvedValue({ count: 1 });
+      const result = await purgeRecycleBinItems({
+        access_token: "token",
+        items: [{ resourceType: "PROJECT", id: 1 }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await purgeRecycleBinItems({
+        access_token: "token",
+        items: [{ resourceType: "PROJECT", id: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("clearRecycleBin 分支", () => {
+    it("AUTHOR 角色清除自己的项目", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
+      mockPrisma.project.findMany.mockResolvedValue([{ id: 1 }]);
+      mockPrisma.project.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrisma.post.findMany.mockResolvedValue([]);
+      mockPrisma.comment.findMany.mockResolvedValue([]);
+      const result = await clearRecycleBin({
+        access_token: "token",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await clearRecycleBin({
+        access_token: "token",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("restoreAllProjectsFromRecycleBin 分支", () => {
+    it("无项目时返回 restored:0", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockResolvedValue([]);
+      const result = await restoreAllProjectsFromRecycleBin({
+        access_token: "token",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
+      mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await restoreAllProjectsFromRecycleBin({
+        access_token: "token",
       });
       expect(result.success).toBe(false);
     });

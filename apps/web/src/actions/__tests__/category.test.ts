@@ -501,4 +501,464 @@ describe("category actions", () => {
       expect(result.success).toBe(true);
     });
   });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("createCategory 补充测试", () => {
+    it("通过 parentSlug 查找父分类", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaCategoryFindFirst.mockResolvedValue({ id: 10 });
+      mockPrismaCategoryFindUnique.mockResolvedValue({ id: 10 });
+      mockCheckCategoryUniqueness.mockResolvedValue({
+        slugExists: false,
+        nameExists: false,
+      });
+      mockPrismaCategoryCreate.mockResolvedValue({
+        id: 2,
+        slug: "sub-cat",
+        name: "子分类",
+        description: null,
+        parentId: 10,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mediaRefs: [],
+        path: "10/2",
+        depth: 1,
+        fullSlug: "parent/sub-cat",
+      });
+      mockPrismaCategoryFindUnique.mockResolvedValue({
+        id: 2,
+        slug: "sub-cat",
+        path: "10/2",
+        depth: 1,
+        fullSlug: "parent/sub-cat",
+        mediaRefs: [],
+      });
+      mockPrismaCategoryUpdate.mockResolvedValue({});
+      const result = await createCategory(
+        {
+          access_token: "token",
+          name: "子分类",
+          parentSlug: "parent",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("parentSlug 对应分类不存在时返回失败", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaCategoryFindFirst.mockResolvedValue(null);
+      const result = await createCategory(
+        {
+          access_token: "token",
+          name: "子分类",
+          parentSlug: "nonexistent",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("指定 parentId 但父分类不存在时返回失败", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockCheckCategoryUniqueness.mockResolvedValue({
+        slugExists: false,
+        nameExists: false,
+      });
+      mockPrismaCategoryFindUnique.mockResolvedValue(null);
+      const result = await createCategory(
+        {
+          access_token: "token",
+          name: "子分类",
+          slug: "sub-cat",
+          parentId: 999,
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未提供 slug 时自动生成", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockSlugify.mockResolvedValue("auto-slug");
+      mockCheckCategoryUniqueness.mockResolvedValue({
+        slugExists: false,
+        nameExists: false,
+      });
+      mockPrismaCategoryCreate.mockResolvedValue({
+        id: 3,
+        slug: "auto-slug",
+        name: "自动分类",
+        description: null,
+        parentId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mediaRefs: [],
+        path: "3",
+        depth: 0,
+        fullSlug: "auto-slug",
+      });
+      mockPrismaCategoryFindUnique.mockResolvedValue({
+        id: 3,
+        slug: "auto-slug",
+        path: "3",
+        depth: 0,
+        fullSlug: "auto-slug",
+        mediaRefs: [],
+      });
+      mockPrismaCategoryUpdate.mockResolvedValue({});
+      const result = await createCategory(
+        {
+          access_token: "token",
+          name: "自动分类",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("名称重复时返回失败", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockCheckCategoryUniqueness.mockResolvedValue({
+        slugExists: false,
+        nameExists: true,
+      });
+      const result = await createCategory(
+        {
+          access_token: "token",
+          name: "重复名称",
+          slug: "unique-slug",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createCategory(
+        {
+          access_token: "token",
+          name: "分类",
+          slug: "cat",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCategory 补充测试", () => {
+    it("非管理员/编辑应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await updateCategory(
+        { access_token: "token", id: 1, newName: "更新" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateCategory(
+        { access_token: "token", id: 1, newName: "更新" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("更改 slug 时应验证唯一性", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaCategoryFindUnique.mockResolvedValue(CATEGORY_RECORD);
+      mockCheckCategoryUniqueness.mockResolvedValue({
+        slugExists: true,
+        nameExists: false,
+      });
+      const result = await updateCategory(
+        {
+          access_token: "token",
+          id: 1,
+          newName: "更新",
+          newSlug: "existing-slug",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteCategories 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteCategories(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteCategories(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("分类不存在时应返回 404", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaCategoryFindUnique.mockResolvedValue(null);
+      const result = await deleteCategories(
+        { access_token: "token", ids: [999] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCategoriesList 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCategoriesList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCategoryDetail 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCategoryDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getCategoryDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getCategoriesList 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCategoriesList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getCategoriesList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("带 search 过滤", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockResolvedValue([]);
+      const result = await getCategoriesList(
+        { access_token: "token", search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 hasZeroPosts 过滤", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockResolvedValue([]);
+      const result = await getCategoriesList(
+        { access_token: "token", hasZeroPosts: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带日期范围过滤", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockResolvedValue([]);
+      const result = await getCategoriesList(
+        {
+          access_token: "token",
+          createdAtStart: "2025-01-01",
+          createdAtEnd: "2025-12-31",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("moveCategories 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await moveCategories(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await moveCategories(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await moveCategories(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("searchCategories 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await searchCategories(
+        { access_token: "token", query: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await searchCategories(
+        { access_token: "token", query: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await searchCategories(
+        { access_token: "token", query: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("空结果返回空数组", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockResolvedValue([]);
+      const result = await searchCategories(
+        { access_token: "token", query: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getCategoriesDistribution 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCategoriesDistribution(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getCategoriesDistribution(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getCategoriesDistribution(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getCategoriesTree 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getCategoriesTree(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getCategoriesTree(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteCategories 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteCategories(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateCategory 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateCategory(
+        { access_token: "token", id: 1, name: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createCategory 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaCategoryFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await createCategory(
+        { access_token: "token", name: "New Category" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
 });

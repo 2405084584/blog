@@ -83,16 +83,30 @@ vi.mock("@/lib/shared/relative-time", () => ({
   formatRelativeTime: vi.fn().mockReturnValue("5 分钟前"),
 }));
 
+// ============ Helpers ============
+
+const ADMIN_USER = { uid: 1, username: "admin", role: "ADMIN" as const };
+
+function mockAuthSuccess(user = ADMIN_USER) {
+  mockAuthVerify.mockResolvedValue(user);
+}
+function mockAuthFailure() {
+  mockAuthVerify.mockResolvedValue(null);
+}
+
 // ============ Tests ============
 
 describe("user actions", () => {
   let getUsersTrends: typeof import("@/actions/user").getUsersTrends;
   let getUsersList: typeof import("@/actions/user").getUsersList;
   let createUser: typeof import("@/actions/user").createUser;
+  let updateUsers: typeof import("@/actions/user").updateUsers;
   let deleteUsers: typeof import("@/actions/user").deleteUsers;
   let getUserProfile: typeof import("@/actions/user").getUserProfile;
+  let updateUserProfile: typeof import("@/actions/user").updateUserProfile;
   let disable2FA: typeof import("@/actions/user").disable2FA;
   let getUserPublicProfile: typeof import("@/actions/user").getUserPublicProfile;
+  let getUserActivity: typeof import("@/actions/user").getUserActivity;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -102,10 +116,13 @@ describe("user actions", () => {
     getUsersTrends = mod.getUsersTrends;
     getUsersList = mod.getUsersList;
     createUser = mod.createUser;
+    updateUsers = mod.updateUsers;
     deleteUsers = mod.deleteUsers;
     getUserProfile = mod.getUserProfile;
+    updateUserProfile = mod.updateUserProfile;
     disable2FA = mod.disable2FA;
     getUserPublicProfile = mod.getUserPublicProfile;
+    getUserActivity = mod.getUserActivity;
   });
 
   // ---------- getUsersTrends ----------
@@ -510,6 +527,296 @@ describe("user actions", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getUserPublicProfile(1);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==================== updateUsers 补充测试 ====================
+
+  describe("updateUsers", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateUsers(
+        { access_token: "token", uids: [1], nickname: "新昵称" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await updateUsers(
+        { access_token: "token", uids: [1], nickname: "新昵称" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("用户不存在时应返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const result = await updateUsers(
+        { access_token: "token", uids: [999], nickname: "新昵称" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("不允许更改当前用户的角色和状态", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        uid: 1,
+        username: "admin",
+        nickname: "Admin",
+        email: "admin@test.com",
+        avatar: null,
+        website: null,
+        bio: null,
+        emailVerified: true,
+        emailNotice: false,
+        role: "ADMIN",
+        status: "ACTIVE",
+      });
+      const result = await updateUsers(
+        { access_token: "token", uids: [1], role: "USER" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("成功更新单个用户信息", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        uid: 2,
+        username: "user",
+        nickname: "User",
+        email: "user@test.com",
+        avatar: null,
+        website: null,
+        bio: null,
+        emailVerified: false,
+        emailNotice: false,
+        role: "USER",
+        status: "ACTIVE",
+      });
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
+      const result = await updateUsers(
+        { access_token: "token", uids: [2], nickname: "新昵称" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("批量更新只允许更改角色和状态", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      const result = await updateUsers(
+        {
+          access_token: "token",
+          uids: [2, 3],
+          role: "EDITOR",
+          nickname: "不允许",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("成功批量更新用户角色", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrisma.user.findMany.mockResolvedValue([
+        { uid: 2, username: "user1" },
+        { uid: 3, username: "user2" },
+      ]);
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 2 });
+      const result = await updateUsers(
+        { access_token: "token", uids: [2, 3], role: "EDITOR" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("批量更新无更新字段时应返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      const result = await updateUsers(
+        { access_token: "token", uids: [2, 3] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteUsers 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteUsers(
+        { access_token: "token", uids: [2] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteUsers(
+        { access_token: "token", uids: [2] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getUsersList 分支", () => {
+    it("带 role 过滤", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockPrisma.user.count.mockResolvedValue(0);
+      const result = await getUsersList(
+        { access_token: "token", page: 1, pageSize: 20, role: ["ADMIN"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 search 过滤", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockPrisma.user.count.mockResolvedValue(0);
+      const result = await getUsersList(
+        { access_token: "token", page: 1, pageSize: 20, search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带日期范围过滤", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockPrisma.user.count.mockResolvedValue(0);
+      const result = await getUsersList(
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          createdAtStart: "2025-01-01",
+          createdAtEnd: "2025-12-31",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findMany.mockRejectedValue(new Error("DB error"));
+      const result = await getUsersList(
+        { access_token: "token", page: 1, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getUserProfile 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getUserProfile(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getUserPublicProfile 分支", () => {
+    it("无效 uid 返回失败", async () => {
+      const result = await getUserPublicProfile(
+        { uid: -1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("用户未找到返回失败", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const result = await getUserPublicProfile(
+        { uid: 999 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getUserPublicProfile(
+        { uid: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("disable2FA 分支", () => {
+    it("目标用户未找到返回失败", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const result = await disable2FA(
+        { access_token: "token", uid: 999 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("目标用户无 2FA 返回失败", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findUnique.mockResolvedValue({
+        uid: 2,
+        totpSecret: null,
+      });
+      const result = await disable2FA(
+        { access_token: "token", uid: 2 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
+      const result = await disable2FA(
+        { access_token: "token", uid: 2 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getUserActivity 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getUserActivity(
+        { uid: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("无效 uid 返回失败", async () => {
+      const result = await getUserActivity(
+        { uid: -1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getUserActivity(
+        { uid: 1 },
+        { environment: "serveraction" },
+      );
       expect(result.success).toBe(false);
     });
   });

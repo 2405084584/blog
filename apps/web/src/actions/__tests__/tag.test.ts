@@ -419,4 +419,187 @@ describe("tag actions", () => {
       expect(result.data![0]!.name).toBe("Tag A");
     });
   });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("getTagsList 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getTagsList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getTagDetail 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getTagDetail(
+        { access_token: "token", slug: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getTagDetail(
+        { access_token: "token", slug: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createTag 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createTag(
+        { access_token: "token", name: "New Tag" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateTag 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateTag(
+        { access_token: "token", slug: "test", name: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteTags 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteTags(
+        { access_token: "token", slugs: ["test"] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("searchTags 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await searchTags(
+        { access_token: "token", query: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getTagsDistribution 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getTagsDistribution(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("getTagsList 分支", () => {
+    it("带 search 过滤", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindMany.mockResolvedValue([]);
+      mockPrismaTagCount.mockResolvedValue(0);
+      const result = await getTagsList(
+        { access_token: "token", search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getTagsList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("searchTags 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await searchTags(
+        { access_token: "token", query: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("空结果返回空数组", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindMany.mockResolvedValue([]);
+      const result = await searchTags(
+        { access_token: "token", query: "nonexistent" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getTagsDistribution 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getTagsDistribution(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createTag 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await createTag(
+        { access_token: "token", name: "New Tag" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateTag 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateTag(
+        { access_token: "token", id: 1, name: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteTags 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteTags(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
 });

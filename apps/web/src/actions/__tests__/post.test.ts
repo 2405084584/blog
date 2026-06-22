@@ -187,6 +187,11 @@ import {
   getPostsTrends,
   getPostHistory,
   getPostVersion,
+  unlockProtectedPost,
+  getProtectedPostContent,
+  updatePosts,
+  resetPostToVersion,
+  squashPostToVersion,
 } from "@/actions/post";
 
 // ============================================================================
@@ -551,6 +556,553 @@ describe("post actions", () => {
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
+    });
+  });
+
+  // ==================== unlockProtectedPost ====================
+
+  describe("unlockProtectedPost", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await unlockProtectedPost({
+          slug: "test",
+          passphrase: "123",
+          captcha_token: "token",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("验证码", () => {
+      it("验证码失败时应返回失败", async () => {
+        mockVerifyToken.mockResolvedValue({ success: false });
+        const result = await unlockProtectedPost({
+          slug: "test",
+          passphrase: "123",
+          captcha_token: "invalid",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("文章不存在时应返回 404", async () => {
+        mockVerifyToken.mockResolvedValue({ success: true });
+        mockPrismaPostFindFirst.mockResolvedValue(null);
+        const result = await unlockProtectedPost({
+          slug: "nonexistent",
+          passphrase: "123",
+          captcha_token: "valid",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("非密码保护文章应返回失败", async () => {
+        mockVerifyToken.mockResolvedValue({ success: true });
+        mockPrismaPostFindFirst.mockResolvedValue({
+          id: 1,
+          accessMode: "PUBLIC",
+          accessPasswords: ["123"],
+          accessVersion: 1,
+        });
+        const result = await unlockProtectedPost({
+          slug: "test",
+          passphrase: "123",
+          captcha_token: "valid",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("口令错误时应返回禁止", async () => {
+        mockVerifyToken.mockResolvedValue({ success: true });
+        mockPrismaPostFindFirst.mockResolvedValue({
+          id: 1,
+          accessMode: "PASSWORD",
+          accessPasswords: ["correct"],
+          accessVersion: 1,
+        });
+        const result = await unlockProtectedPost({
+          slug: "test",
+          passphrase: "wrong",
+          captcha_token: "valid",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("成功解锁文章", async () => {
+        mockVerifyToken.mockResolvedValue({ success: true });
+        mockPrismaPostFindFirst.mockResolvedValue({
+          id: 1,
+          accessMode: "PASSWORD",
+          accessPasswords: ["123"],
+          accessVersion: 1,
+        });
+        mockSetPostAccessCookie.mockResolvedValue(undefined);
+        const result = await unlockProtectedPost({
+          slug: "test",
+          passphrase: "123",
+          captcha_token: "valid",
+        });
+        expect(result.success).toBe(true);
+      });
+    });
+  });
+
+  // ==================== getProtectedPostContent ====================
+
+  describe("getProtectedPostContent", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await getProtectedPostContent({
+          slug: "test",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("文章不存在时应返回 404", async () => {
+        mockPrismaPostFindFirst.mockResolvedValue(null);
+        const result = await getProtectedPostContent({
+          slug: "nonexistent",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("未登录且需要登录时应返回未授权", async () => {
+        mockPrismaPostFindFirst.mockResolvedValue({
+          id: 1,
+          content: "content",
+          postMode: "MARKDOWN",
+          allowComments: true,
+          accessMode: "PRIVATE",
+          minRole: "USER",
+          accessPasswords: [],
+          accessVersion: 1,
+        });
+        mockAuthVerify.mockResolvedValue(null);
+        mockEvaluatePostAccess.mockResolvedValue({
+          allowed: false,
+          reason: "LOGIN_REQUIRED",
+        });
+        const result = await getProtectedPostContent({
+          slug: "test",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("权限不足时应返回禁止", async () => {
+        mockPrismaPostFindFirst.mockResolvedValue({
+          id: 1,
+          content: "content",
+          postMode: "MARKDOWN",
+          allowComments: true,
+          accessMode: "ROLE",
+          minRole: "ADMIN",
+          accessPasswords: [],
+          accessVersion: 1,
+        });
+        mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
+        mockEvaluatePostAccess.mockResolvedValue({
+          allowed: false,
+          reason: "ROLE_REQUIRED",
+        });
+        const result = await getProtectedPostContent({
+          slug: "test",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("成功获取受保护文章内容", async () => {
+        mockPrismaPostFindFirst.mockResolvedValue({
+          id: 1,
+          content: "# Protected",
+          postMode: "MARKDOWN",
+          allowComments: true,
+          accessMode: "PASSWORD",
+          minRole: "USER",
+          accessPasswords: ["123"],
+          accessVersion: 1,
+        });
+        mockAuthVerify.mockResolvedValue(null);
+        mockEvaluatePostAccess.mockResolvedValue({ allowed: true });
+        mockBuildTocFromSource.mockReturnValue([]);
+        const result = await getProtectedPostContent({
+          slug: "test",
+        });
+        expect(result.success).toBe(true);
+        expect(result.data.content).toBe("# Protected");
+      });
+    });
+  });
+
+  // ==================== updatePosts ====================
+
+  describe("updatePosts", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await updatePosts({
+          access_token: "token",
+          ids: [1],
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("认证", () => {
+      it("未认证时应返回未授权", async () => {
+        mockAuthFailure();
+        const result = await updatePosts({
+          access_token: "token",
+          ids: [1],
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("权限控制", () => {
+      it("AUTHOR 不能修改他人文章", async () => {
+        mockAuthSuccess(AUTHOR_USER);
+        mockPrismaPostFindMany.mockResolvedValue([{ id: 1, userUid: 999 }]);
+        const result = await updatePosts({
+          access_token: "token",
+          ids: [1],
+          status: "PUBLISHED",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("ADMIN 可以修改任何文章", async () => {
+        mockAuthSuccess(ADMIN_USER);
+        mockPrismaPostUpdateMany.mockResolvedValue({ count: 1 });
+        const result = await updatePosts({
+          access_token: "token",
+          ids: [1],
+          status: "PUBLISHED",
+        });
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe("批量更新", () => {
+      it("成功批量更新文章状态", async () => {
+        mockAuthSuccess(EDITOR_USER);
+        mockPrismaPostUpdateMany.mockResolvedValue({ count: 2 });
+        const result = await updatePosts({
+          access_token: "token",
+          ids: [1, 2],
+          status: "ARCHIVED",
+        });
+        expect(result.success).toBe(true);
+        expect(result.data.updated).toBe(2);
+      });
+    });
+  });
+
+  // ==================== resetPostToVersion ====================
+
+  describe("resetPostToVersion", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await resetPostToVersion({
+          access_token: "token",
+          slug: "test",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("认证", () => {
+      it("未认证时应返回未授权", async () => {
+        mockAuthFailure();
+        const result = await resetPostToVersion({
+          access_token: "token",
+          slug: "test",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("文章不存在时应返回 404", async () => {
+        mockAuthSuccess(EDITOR_USER);
+        mockPrismaPostFindUnique.mockResolvedValue(null);
+        const result = await resetPostToVersion({
+          access_token: "token",
+          slug: "nonexistent",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("成功重置文章版本", async () => {
+        mockAuthSuccess(EDITOR_USER);
+        mockPrismaPostFindUnique.mockResolvedValue({
+          id: 1,
+          content: "# Current",
+          versionMetadata: "metadata",
+          userUid: 2,
+        });
+        const mockTvInstance = {
+          log: vi.fn().mockReturnValue([
+            {
+              version: "1:2025-01-01T00:00:00.000Z:初始版本",
+              isSnapshot: true,
+            },
+          ]),
+          show: vi.fn().mockReturnValue("# Old Version"),
+          reset: vi.fn(),
+          export: vi.fn().mockReturnValue({
+            snapshot: "# Old Version",
+            metadata: "old-metadata",
+          }),
+        };
+        Object.assign(mockTextVersionImpl, mockTvInstance);
+        mockPrismaPostUpdate.mockResolvedValue({});
+        const result = await resetPostToVersion({
+          access_token: "token",
+          slug: "test",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(true);
+      });
+    });
+  });
+
+  // ==================== squashPostToVersion ====================
+
+  describe("squashPostToVersion", () => {
+    describe("速率限制", () => {
+      it("速率限制时应返回失败", async () => {
+        mockLimitControl.mockResolvedValue(false);
+        const result = await squashPostToVersion({
+          access_token: "token",
+          slug: "test",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("认证", () => {
+      it("未认证时应返回未授权", async () => {
+        mockAuthFailure();
+        const result = await squashPostToVersion({
+          access_token: "token",
+          slug: "test",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("业务逻辑", () => {
+      it("文章不存在时应返回 404", async () => {
+        mockAuthSuccess(EDITOR_USER);
+        mockPrismaPostFindUnique.mockResolvedValue(null);
+        const result = await squashPostToVersion({
+          access_token: "token",
+          slug: "nonexistent",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it("成功压缩文章版本", async () => {
+        mockAuthSuccess(EDITOR_USER);
+        mockPrismaPostFindUnique.mockResolvedValue({
+          id: 1,
+          content: "# Current",
+          versionMetadata: "metadata",
+          userUid: 2,
+        });
+        const mockTvInstance = {
+          log: vi.fn().mockReturnValue([
+            {
+              version: "1:2025-01-01T00:00:00.000Z:初始版本",
+              isSnapshot: true,
+            },
+            {
+              version: "2:2025-01-02T00:00:00.000Z:更新",
+              isSnapshot: false,
+            },
+          ]),
+          squash: vi.fn(),
+          export: vi.fn().mockReturnValue({
+            snapshot: "# Squashed",
+            metadata: "squashed-metadata",
+          }),
+        };
+        Object.assign(mockTextVersionImpl, mockTvInstance);
+        mockPrismaPostUpdate.mockResolvedValue({});
+        const result = await squashPostToVersion({
+          access_token: "token",
+          slug: "test",
+          timestamp: "2025-01-01T00:00:00.000Z",
+        });
+        expect(result.success).toBe(true);
+      });
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("updatePost 分支", () => {
+    it("AUTHOR 不能修改他人文章", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaPostFindUnique.mockResolvedValue({
+        ...POST_RECORD,
+        userUid: 999, // different user
+      });
+      const result = await updatePost(
+        { access_token: "token", id: 1, title: "Hacked" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("slug 冲突返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindUnique.mockResolvedValue(POST_RECORD);
+      mockPrismaPostFindFirst.mockResolvedValue({
+        id: 999,
+        slug: "existing-slug",
+      });
+      const result = await updatePost(
+        { access_token: "token", id: 1, newSlug: "existing-slug" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updatePost(
+        { access_token: "token", id: 1, title: "Updated" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updatePosts 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await updatePosts(
+        { access_token: "token", ids: [1], status: "PUBLISHED" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createPost 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await createPost(
+        {
+          access_token: "token",
+          title: "New Post",
+          content: "Content",
+          status: "DRAFT",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deletePosts 分支", () => {
+    it("AUTHOR 删除自己的文章", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaPostFindMany.mockResolvedValue([
+        { id: 1, userUid: AUTHOR_USER.uid },
+      ]);
+      mockPrismaPostUpdateMany.mockResolvedValue({ count: 1 });
+      const result = await deletePosts(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deletePosts(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostsList 分支", () => {
+    it("AUTHOR 角色过滤到自己的文章", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaPostFindMany.mockResolvedValue([]);
+      mockPrismaPostCount.mockResolvedValue(0);
+      const result = await getPostsList(
+        { access_token: "token", page: 1, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("带 search 过滤", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindMany.mockResolvedValue([]);
+      mockPrismaPostCount.mockResolvedValue(0);
+      const result = await getPostsList(
+        { access_token: "token", page: 1, pageSize: 20, search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getPostsList(
+        { access_token: "token", page: 1, pageSize: 20 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getPostDetail 分支", () => {
+    it("AUTHOR 不能查看他人草稿", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaPostFindUnique.mockResolvedValue({
+        ...POST_RECORD,
+        status: "DRAFT",
+        userUid: 999,
+      });
+      const result = await getPostDetail(
+        { access_token: "token", slug: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaPostFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getPostDetail(
+        { access_token: "token", slug: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
     });
   });
 });

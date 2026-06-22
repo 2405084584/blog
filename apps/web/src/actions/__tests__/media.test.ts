@@ -158,6 +158,10 @@ import {
   getMediaTrends,
   getAccessibleFolders,
   getFolderBreadcrumb,
+  getMediaExplorerPage,
+  createFolder,
+  deleteFolders,
+  moveItems,
 } from "@/actions/media";
 
 // ============================================================================
@@ -1204,6 +1208,2505 @@ describe("media actions", () => {
         );
         expect(result.success).toBe(false);
       });
+    });
+  });
+
+  // ==================== updateMedia 补充测试 ====================
+
+  describe("updateMedia 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("AUTHOR 不能编辑其他用户的文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+      });
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==================== getMediaExplorerPage 补充测试 ====================
+
+  describe("getMediaExplorerPage", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==================== createFolder 补充测试 ====================
+
+  describe("createFolder", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockGetGalleryPhotosData.mockRejectedValue(new Error("DB error"));
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaAggregate.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      const prisma = (await import("@/lib/server/prisma")).default;
+      (prisma.$queryRaw as any).mockRejectedValue(new Error("DB error"));
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 2", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaVirtualFolderFindUnique.mockRejectedValue(
+        new Error("DB error"),
+      );
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 2", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试 2", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试 2", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaVirtualFolderFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试 2", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaVirtualFolderFindUnique.mockRejectedValue(
+        new Error("DB error"),
+      );
+      const result = await moveItems(
+        { access_token: "token", folderIds: [1], targetFolderId: 2 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("未认证时返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 2", () => {
+    it("AUTHOR 不能编辑其他用户的文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+      });
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 2", () => {
+    it("AUTHOR 不能更新他人文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          id: 1,
+          userUid: 999,
+          originalName: "test.jpg",
+          exif: null,
+          galleryPhoto: null,
+        },
+      ]);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 2", () => {
+    it("AUTHOR 不能删除他人文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          userUid: 999,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试 2", () => {
+    it("缓存命中时应返回缓存数据", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockGetCache.mockResolvedValue({
+        totalFiles: 10,
+        totalSize: 102400,
+        typeDistribution: [],
+        dailyStats: [],
+      });
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+    });
+  });
+
+  describe("getMediaTrends 补充测试 2", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      const prisma = (await import("@/lib/server/prisma")).default;
+      (prisma.$queryRaw as any).mockResolvedValue([]);
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 2", () => {
+    it("传递 cursorId 参数", async () => {
+      mockGetGalleryPhotosData.mockResolvedValue({
+        photos: [],
+        nextCursor: undefined,
+      });
+      await getGalleryPhotos(
+        { cursorId: 100 },
+        { environment: "serveraction" },
+      );
+      expect(mockGetGalleryPhotosData).toHaveBeenCalledWith(
+        expect.objectContaining({ cursorId: 100 }),
+      );
+    });
+  });
+
+  describe("updateMedia 补充测试 3", () => {
+    it("成功更新 altText", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        altText: "New Alt",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, altText: "New Alt" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 3", () => {
+    it("批量更新成功", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          id: 1,
+          userUid: 1,
+          originalName: "test.jpg",
+          exif: null,
+          galleryPhoto: null,
+        },
+      ]);
+      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+        fn({
+          media: { updateMany: vi.fn() },
+          photo: { createMany: vi.fn(), deleteMany: vi.fn() },
+        }),
+      );
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 3", () => {
+    it("成功删除多个文件", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          id: 1,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+        {
+          ...MEDIA_RECORD,
+          id: 2,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      mockPrismaMediaDeleteMany.mockResolvedValue({ count: 2 });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      mockDeleteObject.mockResolvedValue(undefined);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1, 2] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateMedia 补充测试 4", () => {
+    it("更新 altText 和 persistentPath", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        altText: "New Alt",
+        persistentPath: "/new/path",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        {
+          access_token: "token",
+          id: 1,
+          altText: "New Alt",
+          persistentPath: "/new/path",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaList 补充测试 3", () => {
+    it("搜索筛选应正确工作", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", search: "test" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("媒体类型筛选应正确工作", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", mediaType: "IMAGE" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaStats 补充测试 3", () => {
+    it("强制刷新时应绕过缓存", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockGetCache.mockResolvedValue(null);
+      mockPrismaMediaAggregate.mockResolvedValue({
+        _count: { id: 10 },
+        _sum: { size: 102400 },
+      });
+      mockPrismaMediaGroupBy.mockResolvedValue([]);
+      const result = await getMediaStats(
+        { access_token: "token", force: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaList 补充测试 4", () => {
+    it("大小筛选应正确工作", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", sizeMin: 100, sizeMax: 10000 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("日期筛选应正确工作", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        {
+          access_token: "token",
+          createdAtStart: "2025-01-01",
+          createdAtEnd: "2025-12-31",
+        },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 3", () => {
+    it("作者角色应返回成功", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      const prisma = (await import("@/lib/server/prisma")).default;
+      (prisma.$queryRaw as any).mockResolvedValue([]);
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaList 补充测试 5", () => {
+    it("画廊筛选应正确工作", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", inGallery: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("优化状态筛选应正确工作", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 3", () => {
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 5", () => {
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 4", () => {
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 4", () => {
+    it("非管理员/编辑/作者应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 3", () => {
+    it("无 cursorId 时应返回成功", async () => {
+      mockGetGalleryPhotosData.mockResolvedValue({
+        photos: [],
+        nextCursor: undefined,
+      });
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaList 补充测试 6", () => {
+    it("排序参数应正确传递", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", sortBy: "size", sortOrder: "desc" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaStats 补充测试 4", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 3", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 3", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 6", () => {
+    it("更新 altText", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        altText: "Updated Alt",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, altText: "Updated Alt" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 5", () => {
+    it("空 ID 列表应返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 5", () => {
+    it("空 ID 列表应返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 7", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 8", () => {
+    it("分页参数应正确传递", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token", page: 2, pageSize: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 5", () => {
+    it("AUTHOR 可以访问自己的文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 3, // AUTHOR_USER
+        galleryPhoto: null,
+        references: [],
+      });
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateMedia 补充测试 8", () => {
+    it("AUTHOR 可以编辑自己的文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 3, // AUTHOR_USER
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 3,
+        originalName: "updated.jpg",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 7", () => {
+    it("AUTHOR 可以删除自己的文件", async () => {
+      mockAuthSuccess(AUTHOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          userUid: 3, // AUTHOR_USER
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      mockPrismaMediaDeleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      mockDeleteObject.mockResolvedValue(undefined);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaStats 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 5", () => {
+    it("数据库错误时返回失败", async () => {
+      mockGetGalleryPhotosData.mockRejectedValue(new Error("DB error"));
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 9", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 6", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 9", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 8", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 7", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试 6", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 5", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 4", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 4", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 补充测试 2", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试 3", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试 3", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试 3", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 10", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 7", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+        references: [],
+      });
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateMedia 补充测试 10", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        originalName: "updated.jpg",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 9", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          userUid: 999,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      mockPrismaMediaDeleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      mockDeleteObject.mockResolvedValue(undefined);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 8", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          id: 1,
+          userUid: 999,
+          originalName: "test.jpg",
+          exif: null,
+          galleryPhoto: null,
+        },
+      ]);
+      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+        fn({
+          media: { updateMany: vi.fn() },
+          photo: { createMany: vi.fn(), deleteMany: vi.fn() },
+        }),
+      );
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 6", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 11", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 8", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 11", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 10", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 9", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试 7", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 补充测试 3", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试 4", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 12", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 9", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+        references: [],
+      });
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateMedia 补充测试 12", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        originalName: "updated.jpg",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 11", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          userUid: 999,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      mockPrismaMediaDeleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      mockDeleteObject.mockResolvedValue(undefined);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 10", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          id: 1,
+          userUid: 999,
+          originalName: "test.jpg",
+          exif: null,
+          galleryPhoto: null,
+        },
+      ]);
+      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+        fn({
+          media: { updateMany: vi.fn() },
+          photo: { createMany: vi.fn(), deleteMany: vi.fn() },
+        }),
+      );
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 7", () => {
+    it("数据库错误时返回失败", async () => {
+      mockGetGalleryPhotosData.mockRejectedValue(new Error("DB error"));
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 13", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 10", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 13", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 12", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 11", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试 8", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 6", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 6", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 补充测试 4", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试 5", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试 5", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试 5", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 14", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 11", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+        references: [],
+      });
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateMedia 补充测试 14", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        originalName: "updated.jpg",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 13", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          userUid: 999,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      mockPrismaMediaDeleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      mockDeleteObject.mockResolvedValue(undefined);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 12", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          id: 1,
+          userUid: 999,
+          originalName: "test.jpg",
+          exif: null,
+          galleryPhoto: null,
+        },
+      ]);
+      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+        fn({
+          media: { updateMany: vi.fn() },
+          photo: { createMany: vi.fn(), deleteMany: vi.fn() },
+        }),
+      );
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 8", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 15", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 12", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 15", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 14", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 13", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试 9", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 8", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 7", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 7", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 补充测试 5", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试 6", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 16", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([]);
+      mockPrismaMediaCount.mockResolvedValue(0);
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 13", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+        references: [],
+      });
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("updateMedia 补充测试 16", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindUnique.mockResolvedValue({
+        ...MEDIA_RECORD,
+        userUid: 999,
+        galleryPhoto: null,
+      });
+      mockPrismaMediaUpdate.mockResolvedValue({
+        ...MEDIA_RECORD,
+        originalName: "updated.jpg",
+        galleryPhoto: null,
+      });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("deleteMedia 补充测试 15", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          ...MEDIA_RECORD,
+          userUid: 999,
+          galleryPhoto: null,
+          StorageProvider: {
+            name: "local",
+            type: "LOCAL",
+            baseUrl: "https://example.com",
+            pathTemplate: "/{year}/{month}/{filename}",
+            config: {},
+          },
+        },
+      ]);
+      mockPrismaMediaDeleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      mockDeleteObject.mockResolvedValue(undefined);
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 14", () => {
+    it("编辑角色应返回成功", async () => {
+      mockAuthSuccess(EDITOR_USER);
+      mockPrismaMediaFindMany.mockResolvedValue([
+        {
+          id: 1,
+          userUid: 999,
+          originalName: "test.jpg",
+          exif: null,
+          galleryPhoto: null,
+        },
+      ]);
+      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+        fn({
+          media: { updateMany: vi.fn() },
+          photo: { createMany: vi.fn(), deleteMany: vi.fn() },
+        }),
+      );
+      mockPrismaMediaReferenceFindMany.mockResolvedValue([]);
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], isOptimized: true },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getGalleryPhotos 补充测试 9", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getGalleryPhotos(
+        {},
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 补充测试 17", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 补充测试 14", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("updateMedia 补充测试 17", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await updateMedia(
+        { access_token: "token", id: 1, originalName: "updated.jpg" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteMedia 补充测试 16", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 补充测试 15", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess(ADMIN_USER);
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 补充测试 10", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 补充测试 9", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getFolderBreadcrumb 补充测试 8", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getFolderBreadcrumb(
+        { access_token: "token", folderId: 10 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getAccessibleFolders 补充测试 8", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getAccessibleFolders(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 补充测试 6", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createFolder 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 补充测试 7", () => {
+    it("非管理员应返回未授权", async () => {
+      mockAuthFailure();
+      const result = await moveItems(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ===== 分支覆盖补充测试 =====
+
+  describe("createFolder 分支", () => {
+    it("空名称返回失败", async () => {
+      mockAuthSuccess();
+      const result = await createFolder(
+        { access_token: "token", name: "" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("名称超过100字符返回失败", async () => {
+      mockAuthSuccess();
+      const result = await createFolder(
+        { access_token: "token", name: "a".repeat(101) },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("名称含非法字符返回失败", async () => {
+      mockAuthSuccess();
+      const result = await createFolder(
+        { access_token: "token", name: "test/folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("父文件夹未找到返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaVirtualFolderFindUnique.mockResolvedValue(null);
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder", parentId: 999 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
+      const result = await createFolder(
+        { access_token: "token", name: "New Folder" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("deleteFolders 分支", () => {
+    it("空 ids 返回失败", async () => {
+      mockAuthSuccess();
+      const result = await deleteFolders(
+        { access_token: "token", ids: [] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("文件夹未找到返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaVirtualFolderFindMany.mockResolvedValue([]);
+      const result = await deleteFolders(
+        { access_token: "token", ids: [999] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaVirtualFolderFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await deleteFolders(
+        { access_token: "token", ids: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("moveItems 分支", () => {
+    it("无选中项目返回失败", async () => {
+      mockAuthSuccess();
+      const result = await moveItems(
+        { access_token: "token", mediaIds: [], folderIds: [] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("目标文件夹未找到返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaVirtualFolderFindUnique.mockResolvedValue(null);
+      const result = await moveItems(
+        { access_token: "token", mediaIds: [1], targetFolderId: 999 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await moveItems(
+        { access_token: "token", mediaIds: [1] },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaExplorerPage 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaVirtualFolderFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaExplorerPage(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaList 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaList(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaDetail 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaMediaFindUnique.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaDetail(
+        { access_token: "token", id: 1 },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("batchUpdateMedia 分支", () => {
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
+      const result = await batchUpdateMedia(
+        { access_token: "token", ids: [1], data: { altText: "test" } },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaStats 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it("数据库错误时返回失败", async () => {
+      mockAuthSuccess();
+      mockPrismaMediaAggregate.mockRejectedValue(new Error("DB error"));
+      const result = await getMediaStats(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("getMediaTrends 分支", () => {
+    it("速率限制时应返回失败", async () => {
+      mockLimitControl.mockResolvedValue(false);
+      const result = await getMediaTrends(
+        { access_token: "token" },
+        { environment: "serveraction" },
+      );
+      expect(result.success).toBe(false);
     });
   });
 });

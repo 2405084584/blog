@@ -405,4 +405,34 @@ describe("menu-cache", () => {
       expect(result[0].page).toEqual({ slug: "/minimal" });
     });
   });
+
+  // ==================== 补充分支覆盖测试 ====================
+
+  describe("getMenusByCategory 补充测试", () => {
+    it("返回 FOOTER 分类菜单", async () => {
+      mockPrisma.menu.findMany.mockResolvedValue([
+        createMockDbMenu({ id: "1", name: "Footer Menu", category: "FOOTER" }),
+      ]);
+
+      const result = await getMenusByCategory("FOOTER");
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe("FOOTER");
+    });
+  });
+
+  describe("getActiveMenus 补充测试", () => {
+    it("混合状态时只返回 ACTIVE", async () => {
+      mockPrisma.menu.findMany.mockResolvedValue([
+        createMockDbMenu({ id: "1", name: "Active", status: "ACTIVE" }),
+        createMockDbMenu({ id: "2", name: "Suspended", status: "SUSPENDED" }),
+        createMockDbMenu({ id: "3", name: "Active2", status: "ACTIVE" }),
+      ]);
+
+      const result = await getActiveMenus();
+
+      expect(result).toHaveLength(2);
+      expect(result.every((m) => m.status === "ACTIVE")).toBe(true);
+    });
+  });
 });
