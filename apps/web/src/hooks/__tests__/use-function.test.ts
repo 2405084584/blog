@@ -54,7 +54,7 @@ describe("useFunction store", () => {
     const state = getStore();
     const add = vi.fn((a: number, b: number) => a + b);
 
-    state.registerFunction("add", add);
+    state.registerFunction("add", add as any);
 
     const result = await state.callFunction("add", 3, 5);
     expect(result).toBe(8);
@@ -95,7 +95,7 @@ describe("useFunction store", () => {
       return `processed: ${value}`;
     });
 
-    state.registerFunction("asyncFn", asyncFn);
+    state.registerFunction("asyncFn", asyncFn as any);
 
     const result = await state.callFunction("asyncFn", "test");
     expect(result).toBe("processed: test");
@@ -108,7 +108,7 @@ describe("useFunction store", () => {
     const state = getStore();
     const multiply = vi.fn((a: number, b: number) => a * b);
 
-    state.registerFunction("multiply", multiply);
+    state.registerFunction("multiply", multiply as any);
 
     const result = state.callFunctionSync("multiply", 4, 6);
     expect(result).toBe(24);

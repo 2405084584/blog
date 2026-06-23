@@ -341,7 +341,7 @@ describe("auth actions", () => {
       const result = await authModule.login(validLoginParams);
 
       expect(result.success).toBe(true);
-      expect(result.data?.requiresTotp).toBe(true);
+      expect((result as any).data?.requiresTotp).toBe(true);
     });
 
     it("正常登录成功应返回用户信息", async () => {
@@ -370,7 +370,7 @@ describe("auth actions", () => {
       const result = await authModule.login(validLoginParams);
 
       expect(result.success).toBe(true);
-      expect(result.data?.userInfo.username).toBe("testuser");
+      expect((result as any).data?.userInfo.username).toBe("testuser");
     });
 
     it("token_transport 为 body 时应返回 token 在响应中", async () => {
@@ -402,8 +402,8 @@ describe("auth actions", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data?.access_token).toBe("signed-token");
-      expect(result.data?.refresh_token).toBe("signed-token");
+      expect((result as any).data?.access_token).toBe("signed-token");
+      expect((result as any).data?.refresh_token).toBe("signed-token");
     });
   });
 
@@ -598,8 +598,8 @@ describe("auth actions", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data?.userInfo.username).toBe("test");
-      expect(result.data?.access_token).toBe("signed-token");
+      expect((result as any).data?.userInfo.username).toBe("test");
+      expect((result as any).data?.access_token).toBe("signed-token");
     });
   });
 
@@ -705,6 +705,7 @@ describe("auth actions", () => {
       mockLimitControl.mockResolvedValue(false);
 
       const result = await authModule.changePassword({
+        old_password: "OldPass123",
         new_password: "NewPass123",
       });
 
@@ -715,6 +716,7 @@ describe("auth actions", () => {
       mockJwtTokenVerify.mockReturnValue(null);
 
       const result = await authModule.changePassword({
+        old_password: "OldPass123",
         new_password: "NewPass123",
         access_token: "invalid",
       });
@@ -731,6 +733,7 @@ describe("auth actions", () => {
       mockCheckReauthToken.mockResolvedValue(false);
 
       const result = await authModule.changePassword({
+        old_password: "OldPass123",
         new_password: "NewPass123",
         access_token: "valid",
       });
@@ -754,6 +757,7 @@ describe("auth actions", () => {
       mockVerifyPassword.mockResolvedValue({ isValid: true });
 
       const result = await authModule.changePassword({
+        old_password: "OldPass123",
         new_password: "SamePass123",
         access_token: "valid",
       });
@@ -777,6 +781,7 @@ describe("auth actions", () => {
       mockVerifyPassword.mockResolvedValue({ isValid: false });
 
       const result = await authModule.changePassword({
+        old_password: "OldPass123",
         new_password: "NewPass123",
         access_token: "valid",
       });

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -112,7 +112,7 @@ describe("captcha", () => {
 
     it("cap 实例应包含 storage 配置", async () => {
       const { cap } = await import("@/lib/server/captcha");
-      expect(cap.storage).toBeDefined();
+      expect((cap as any).storage).toBeDefined();
     });
 
     it("cap 的 storage 应包含 challenges 配置", async () => {

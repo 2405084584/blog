@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { FolderItem } from "../folder-utils";
-import { canEnterFolder, formatFolderName } from "../folder-utils";
+import type { FolderItem } from "@/lib/client/folder-utils";
+import { canEnterFolder, formatFolderName } from "@/lib/client/folder-utils";
 
 // 构造 FolderItem 测试夹具
 function makeFolder(overrides: Partial<FolderItem> = {}): FolderItem {

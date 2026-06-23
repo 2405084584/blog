@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { CustomHeading } from "../custom-heading";
+import { CustomHeading } from "@/lib/tiptap/custom-heading";
 
 function getRenderMarkdown() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const config = (CustomHeading as any).config;
   return config?.renderMarkdown;
 }

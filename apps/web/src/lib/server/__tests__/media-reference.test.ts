@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock generateSignature before importing the module under test
 vi.mock("@/lib/server/image-crypto", () => ({
@@ -17,18 +17,18 @@ vi.mock("@/lib/server/prisma", () => {
 });
 
 import {
-  getFeaturedImageUrl,
-  getAllFeaturedImageUrls,
-  getFeaturedImageData,
-  getContentImageUrls,
-  createFeaturedImageRef,
   createContentImageRefs,
-  updateFeaturedImageRef,
+  createFeaturedImageRef,
   findMediaIdByUrl,
+  getAllFeaturedImageUrls,
+  getContentImageUrls,
+  getFeaturedImageData,
+  getFeaturedImageUrl,
   mediaRefsInclude,
+  updateFeaturedImageRef,
 } from "@/lib/server/media-reference";
-import { MEDIA_SLOTS } from "@/types/media";
 import prisma from "@/lib/server/prisma";
+import { MEDIA_SLOTS } from "@/types/media";
 
 // Helper to build a minimal mediaRef
 function makeRef(

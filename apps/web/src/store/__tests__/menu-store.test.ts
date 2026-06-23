@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { useMenuStore } from "@/store/menu-store";
 
 describe("menu-store", () => {

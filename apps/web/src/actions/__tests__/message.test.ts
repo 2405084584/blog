@@ -371,7 +371,7 @@ describe("message actions", () => {
       const result = await searchUsers("test");
       expect(result.success).toBe(true);
       expect(result.data.users).toHaveLength(1);
-      expect(result.data.users[0].emailMd5).toBe("md5hash");
+      expect(result.data!.users[0]!.emailMd5).toBe("md5hash");
     });
   });
 
@@ -420,7 +420,7 @@ describe("message actions", () => {
       mockGetConfig.mockResolvedValue(false);
       const result = await getConversationMessages(
         "550e8400-e29b-41d4-a716-446655440000",
-        { page: 1, pageSize: 20 },
+        0,
       );
       expect(result.success).toBe(false);
     });
@@ -430,7 +430,7 @@ describe("message actions", () => {
       mockPrisma.conversationParticipant.findUnique.mockResolvedValue(null);
       const result = await getConversationMessages(
         "550e8400-e29b-41d4-a716-446655440000",
-        { page: 1, pageSize: 20 },
+        0,
       );
       expect(result.success).toBe(false);
     });
@@ -445,7 +445,7 @@ describe("message actions", () => {
       mockPrisma.message.count.mockResolvedValue(0);
       const result = await getConversationMessages(
         "550e8400-e29b-41d4-a716-446655440000",
-        { page: 1, pageSize: 20 },
+        0,
       );
       expect(result.success).toBe(true);
     });

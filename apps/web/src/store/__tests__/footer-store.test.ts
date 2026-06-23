@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { useFooterStore } from "@/store/footer-store";
 
 describe("footer-store", () => {

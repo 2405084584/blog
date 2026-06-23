@@ -125,6 +125,7 @@ describe("friendlink actions", () => {
           avatar: "https://test.com/a.png",
           slogan: "Hello",
           friendLinkUrl: "https://test.com/friends",
+          captcha_token: "token",
         });
         expect(result.success).toBe(false);
       });
@@ -139,6 +140,7 @@ describe("friendlink actions", () => {
           avatar: "https://test.com/a.png",
           slogan: "Hello",
           friendLinkUrl: "https://test.com/friends",
+          captcha_token: "token",
         });
         expect(result.success).toBe(false);
       });
@@ -158,6 +160,7 @@ describe("friendlink actions", () => {
           avatar: "https://test.com/a.png",
           slogan: "Hello",
           friendLinkUrl: "https://test.com/friends",
+          captcha_token: "token",
         });
         expect(result.success).toBe(false);
       });
@@ -245,7 +248,7 @@ describe("friendlink actions", () => {
         });
         const result = await getOwnFriendLink({ access_token: "token" });
         expect(result.success).toBe(true);
-        expect(result.data.name).toBe("Test");
+        expect(result.data!.name).toBe("Test");
       });
     });
   });
@@ -435,7 +438,7 @@ describe("friendlink actions", () => {
           id: 1,
         });
         expect(result.success).toBe(true);
-        expect(result.data.name).toBe("Test");
+        expect(result.data!.name).toBe("Test");
       });
     });
   });
@@ -449,7 +452,7 @@ describe("friendlink actions", () => {
         const result = await reviewFriendLink({
           access_token: "token",
           id: 1,
-          action: "approve",
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(false);
       });
@@ -461,7 +464,7 @@ describe("friendlink actions", () => {
         const result = await reviewFriendLink({
           access_token: "token",
           id: 1,
-          action: "approve",
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(false);
       });
@@ -474,7 +477,7 @@ describe("friendlink actions", () => {
         const result = await reviewFriendLink({
           access_token: "token",
           id: 999,
-          action: "approve",
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(false);
       });
@@ -488,7 +491,7 @@ describe("friendlink actions", () => {
         const result = await reviewFriendLink({
           access_token: "token",
           id: 1,
-          action: "approve",
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(false);
       });
@@ -584,6 +587,8 @@ describe("friendlink actions", () => {
           avatar: "https://test.com/a.png",
           slogan: "Hello",
           friendLinkUrl: "https://test.com/friends",
+          ignoreBacklink: false,
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(false);
       });
@@ -599,6 +604,8 @@ describe("friendlink actions", () => {
           avatar: "https://test.com/a.png",
           slogan: "Hello",
           friendLinkUrl: "https://test.com/friends",
+          ignoreBacklink: false,
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(false);
       });
@@ -637,6 +644,8 @@ describe("friendlink actions", () => {
           avatar: "https://test.com/a.png",
           slogan: "Hello",
           friendLinkUrl: "https://test.com/friends",
+          ignoreBacklink: false,
+          status: "PUBLISHED",
         });
         expect(result.success).toBe(true);
       });
@@ -706,6 +715,9 @@ describe("friendlink actions", () => {
         const result = await getFriendLinksList({
           access_token: "token",
           page: 1,
+          pageSize: 25,
+          sortBy: "createdAt",
+          sortOrder: "desc",
         });
         expect(result.success).toBe(false);
       });
@@ -717,6 +729,9 @@ describe("friendlink actions", () => {
         const result = await getFriendLinksList({
           access_token: "token",
           page: 1,
+          pageSize: 25,
+          sortBy: "createdAt",
+          sortOrder: "desc",
         });
         expect(result.success).toBe(false);
       });
@@ -769,6 +784,9 @@ describe("friendlink actions", () => {
         const result = await getFriendLinksList({
           access_token: "token",
           page: 1,
+          pageSize: 25,
+          sortBy: "createdAt",
+          sortOrder: "desc",
         });
         expect(result.success).toBe(true);
         expect(result.data).toHaveLength(0);
@@ -782,7 +800,10 @@ describe("friendlink actions", () => {
     describe("速率限制", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
-        const result = await getFriendLinksStats({ access_token: "token" });
+        const result = await getFriendLinksStats({
+          access_token: "token",
+          force: false,
+        });
         expect(result.success).toBe(false);
       });
     });
@@ -790,7 +811,10 @@ describe("friendlink actions", () => {
     describe("认证", () => {
       it("非管理员应返回未授权", async () => {
         mockAuthVerify.mockResolvedValue(null);
-        const result = await getFriendLinksStats({ access_token: "token" });
+        const result = await getFriendLinksStats({
+          access_token: "token",
+          force: false,
+        });
         expect(result.success).toBe(false);
       });
     });
@@ -809,10 +833,13 @@ describe("friendlink actions", () => {
           .mockResolvedValueOnce(1) // noBacklink
           .mockResolvedValueOnce(5) // withOwner
           .mockResolvedValueOnce(3); // problematic
-        const result = await getFriendLinksStats({ access_token: "token" });
+        const result = await getFriendLinksStats({
+          access_token: "token",
+          force: false,
+        });
         expect(result.success).toBe(true);
-        expect(result.data.total).toBe(20);
-        expect(result.data.published).toBe(10);
+        expect(result.data!.total).toBe(20);
+        expect(result.data!.published).toBe(10);
       });
     });
   });
@@ -823,7 +850,11 @@ describe("friendlink actions", () => {
     describe("速率限制", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
-        const result = await getFriendLinksTrends({ access_token: "token" });
+        const result = await getFriendLinksTrends({
+          access_token: "token",
+          days: 30,
+          count: 30,
+        });
         expect(result.success).toBe(false);
       });
     });
@@ -831,7 +862,11 @@ describe("friendlink actions", () => {
     describe("认证", () => {
       it("非管理员应返回未授权", async () => {
         mockAuthVerify.mockResolvedValue(null);
-        const result = await getFriendLinksTrends({ access_token: "token" });
+        const result = await getFriendLinksTrends({
+          access_token: "token",
+          days: 30,
+          count: 30,
+        });
         expect(result.success).toBe(false);
       });
     });
@@ -840,7 +875,11 @@ describe("friendlink actions", () => {
       it("成功获取友链趋势", async () => {
         mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
         mockPrisma.friendLink.findMany.mockResolvedValue([]);
-        const result = await getFriendLinksTrends({ access_token: "token" });
+        const result = await getFriendLinksTrends({
+          access_token: "token",
+          days: 30,
+          count: 30,
+        });
         expect(result.success).toBe(true);
       });
     });
@@ -855,6 +894,10 @@ describe("friendlink actions", () => {
         access_token: "token",
         id: 1,
         name: "Updated",
+        url: "https://test.com",
+        ignoreBacklink: false,
+        order: 0,
+        status: "PUBLISHED",
       });
       expect(result.success).toBe(false);
     });
@@ -865,6 +908,10 @@ describe("friendlink actions", () => {
         access_token: "token",
         id: 1,
         name: "Updated",
+        url: "https://test.com",
+        ignoreBacklink: false,
+        order: 0,
+        status: "PUBLISHED",
       });
       expect(result.success).toBe(false);
     });
@@ -876,6 +923,10 @@ describe("friendlink actions", () => {
         access_token: "token",
         id: 999,
         name: "Updated",
+        url: "https://test.com",
+        ignoreBacklink: false,
+        order: 0,
+        status: "PUBLISHED",
       });
       expect(result.success).toBe(false);
     });
@@ -917,6 +968,8 @@ describe("friendlink actions", () => {
         name: "Updated",
         url: "https://test.com",
         status: "PUBLISHED",
+        ignoreBacklink: false,
+        order: 0,
       });
       expect(result.success).toBe(true);
     });
@@ -947,6 +1000,7 @@ describe("friendlink actions", () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await checkFriendLinks({
         access_token: "token",
+        checkAll: false,
       });
       expect(result.success).toBe(false);
     });
@@ -955,6 +1009,7 @@ describe("friendlink actions", () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await checkFriendLinks({
         access_token: "token",
+        checkAll: false,
       });
       expect(result.success).toBe(false);
     });
@@ -992,6 +1047,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
       });
       expect(result.success).toBe(false);
     });
@@ -1008,6 +1066,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         search: "test",
       });
 
@@ -1022,6 +1083,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         status: ["PUBLISHED", "PENDING"],
       });
 
@@ -1036,6 +1100,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         ownerUid: 5,
       });
 
@@ -1050,6 +1117,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         ignoreBacklink: true,
       });
 
@@ -1064,6 +1134,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         hasIssue: true,
       });
 
@@ -1078,6 +1151,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         hasIssue: false,
       });
 
@@ -1092,6 +1168,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         createdAtStart: "2025-01-01",
         createdAtEnd: "2025-12-31",
       });
@@ -1107,6 +1186,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         updatedAtStart: "2025-01-01",
         updatedAtEnd: "2025-12-31",
       });
@@ -1122,6 +1204,9 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
         publishedAtStart: "2025-01-01",
         publishedAtEnd: "2025-12-31",
       });
@@ -1137,6 +1222,7 @@ describe("friendlink actions", () => {
       const result = await getFriendLinksList({
         access_token: "token",
         page: 1,
+        pageSize: 25,
         sortBy: "name",
         sortOrder: "asc",
       });
@@ -1171,6 +1257,7 @@ describe("friendlink actions", () => {
         avatar: "https://test.com/a.png",
         slogan: "Hello",
         status: "WHITELIST",
+        ignoreBacklink: false,
       });
 
       expect(result.success).toBe(true);
@@ -1201,6 +1288,7 @@ describe("friendlink actions", () => {
         avatar: "https://test2.com/a.png",
         slogan: "Hello2",
         status: "PUBLISHED",
+        ignoreBacklink: false,
       });
 
       expect(result.success).toBe(true);
@@ -1216,6 +1304,8 @@ describe("friendlink actions", () => {
         url: "https://test.com",
         avatar: "https://test.com/a.png",
         slogan: "Hello",
+        ignoreBacklink: false,
+        status: "PUBLISHED",
       });
 
       expect(result.success).toBe(false);
@@ -1244,7 +1334,7 @@ describe("friendlink actions", () => {
         checked: 5,
         fixed: 1,
         errors: 0,
-      });
+      } as any);
 
       const result = await checkFriendLinks({
         access_token: "token",

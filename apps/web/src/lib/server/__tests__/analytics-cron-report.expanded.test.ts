@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@repo/shared-types/api/cron", () => ({}));
@@ -65,7 +65,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -86,7 +86,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 10,
@@ -104,7 +104,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -124,7 +124,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -163,7 +163,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -201,7 +201,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -239,7 +239,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -267,7 +267,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -312,7 +312,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -350,7 +350,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 42,
@@ -362,7 +362,7 @@ describe("analytics-cron-report expanded", () => {
       });
       expect(result).toBeDefined();
       if (result.cycleResults.length > 0) {
-        expect(result.cycleResults[0].periodLabel).toBeDefined();
+        expect(result.cycleResults[0]!.periodLabel).toBeDefined();
       }
     });
 
@@ -391,7 +391,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -429,7 +429,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -467,7 +467,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -506,7 +506,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,
@@ -545,7 +545,7 @@ describe("analytics-cron-report expanded", () => {
         "@/lib/server/analytics-cron-report"
       );
       const result = await dispatchAnalyticsCronReports({
-        triggerType: "CRON",
+        triggerType: "CRON" as any,
         flushResult: {
           success: true,
           flushedCount: 0,

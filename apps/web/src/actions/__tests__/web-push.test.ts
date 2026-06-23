@@ -153,7 +153,7 @@ describe("web-push actions", () => {
       mockGetConfig.mockResolvedValue({ publicKey: "test-key" });
       const result = await getVapidPublicKey();
       expect(result.success).toBe(true);
-      expect(result.data.publicKey).toBe("test-key");
+      expect(result.data!.publicKey).toBe("test-key");
     });
   });
 
@@ -180,7 +180,7 @@ describe("web-push actions", () => {
 
       const result = await getUserPushSubscriptions();
       expect(result.success).toBe(true);
-      expect(result.data.subscriptions).toHaveLength(1);
+      expect(result.data!.subscriptions).toHaveLength(1);
     });
   });
 
@@ -232,7 +232,7 @@ describe("web-push actions", () => {
 
       const result = await sendTestWebPush();
       expect(result.success).toBe(true);
-      expect(result.data.message).toContain("2");
+      expect(result.data!.message).toContain("2");
     });
   });
 });

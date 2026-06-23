@@ -84,8 +84,8 @@ vi.mock("@/data/check-config", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
 import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
 import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
@@ -167,6 +167,7 @@ describe("doctor actions", () => {
       const { doctor } = await import("@/actions/doctor");
       const result = await doctor({
         access_token: "valid-token",
+        force: false,
       });
 
       expect(result).toEqual(expect.objectContaining({ success: true }));
@@ -178,7 +179,7 @@ describe("doctor actions", () => {
       mockAuthVerify.mockResolvedValue(null as never);
 
       const { doctor } = await import("@/actions/doctor");
-      const result = await doctor({ access_token: "invalid" });
+      const result = await doctor({ access_token: "invalid", force: false });
 
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 401 }),
@@ -189,7 +190,10 @@ describe("doctor actions", () => {
       mockLimitControl.mockResolvedValue(false as never);
 
       const { doctor } = await import("@/actions/doctor");
-      const result = await doctor({ access_token: "valid-token" });
+      const result = await doctor({
+        access_token: "valid-token",
+        force: false,
+      });
 
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 429 }),

@@ -193,9 +193,9 @@ describe("recycle-bin actions", () => {
 
       const result = await getRecycleBinStats({ access_token: "token" });
       expect(result.success).toBe(true);
-      expect(result.data.total).toBe(0);
+      expect(result.data!.total).toBe(0);
       // types includes entries with 0 count for each visible resource type
-      expect(result.data.types.length).toBeGreaterThanOrEqual(0);
+      expect(result.data!.types.length).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -231,7 +231,7 @@ describe("recycle-bin actions", () => {
         items: [{ resourceType: "POST", id: 1 }],
       });
       expect(result.success).toBe(true);
-      expect(result.data.restored).toBe(1);
+      expect(result.data!.restored).toBe(1);
     });
   });
 
@@ -257,7 +257,7 @@ describe("recycle-bin actions", () => {
         items: [{ resourceType: "PROJECT", id: 1 }],
       });
       expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(1);
+      expect(result.data!.deleted).toBe(1);
     });
   });
 
@@ -293,7 +293,7 @@ describe("recycle-bin actions", () => {
 
       const result = await clearRecycleBin({ access_token: "token" });
       expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(0);
+      expect(result.data!.deleted).toBe(0);
     });
 
     it("速率限制时应返回 429", async () => {

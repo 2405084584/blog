@@ -103,7 +103,6 @@ describe("user actions", () => {
   let updateUsers: typeof import("@/actions/user").updateUsers;
   let deleteUsers: typeof import("@/actions/user").deleteUsers;
   let getUserProfile: typeof import("@/actions/user").getUserProfile;
-  let updateUserProfile: typeof import("@/actions/user").updateUserProfile;
   let disable2FA: typeof import("@/actions/user").disable2FA;
   let getUserPublicProfile: typeof import("@/actions/user").getUserPublicProfile;
   let getUserActivity: typeof import("@/actions/user").getUserActivity;
@@ -119,7 +118,6 @@ describe("user actions", () => {
     updateUsers = mod.updateUsers;
     deleteUsers = mod.deleteUsers;
     getUserProfile = mod.getUserProfile;
-    updateUserProfile = mod.updateUserProfile;
     disable2FA = mod.disable2FA;
     getUserPublicProfile = mod.getUserPublicProfile;
     getUserActivity = mod.getUserActivity;
@@ -158,7 +156,7 @@ describe("user actions", () => {
         count: 3,
       });
       expect(result.success).toBe(true);
-      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data!.length).toBeGreaterThan(0);
     });
   });
 
@@ -167,13 +165,25 @@ describe("user actions", () => {
   describe("getUsersList", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getUsersList({ access_token: "token" });
+      const result = await getUsersList({
+        access_token: "token",
+        page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
-      const result = await getUsersList({ access_token: "token" });
+      const result = await getUsersList({
+        access_token: "token",
+        page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
@@ -221,11 +231,13 @@ describe("user actions", () => {
         access_token: "token",
         page: 1,
         pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
       });
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
-      expect(result.meta.total).toBe(2);
-      expect(result.data[1].hasTwoFactor).toBe(true);
+      expect(result.meta!.total).toBe(2);
+      expect(result.data![1]!.hasTwoFactor).toBe(true);
     });
   });
 
@@ -282,7 +294,7 @@ describe("user actions", () => {
         password: "pass123",
       });
       expect(result.success).toBe(true);
-      expect(result.data.uid).toBe(10);
+      expect(result.data!.uid).toBe(10);
     });
   });
 
@@ -313,7 +325,7 @@ describe("user actions", () => {
 
       const result = await deleteUsers({ access_token: "token", uids: [2] });
       expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(1);
+      expect(result.data!.deleted).toBe(1);
     });
   });
 
@@ -350,9 +362,9 @@ describe("user actions", () => {
 
       const result = await getUserProfile();
       expect(result.success).toBe(true);
-      expect(result.data.username).toBe("admin");
-      expect(result.data.hasPassword).toBe(true);
-      expect(result.data.linkedAccounts).toHaveLength(1);
+      expect(result.data!.username).toBe("admin");
+      expect(result.data!.hasPassword).toBe(true);
+      expect(result.data!.linkedAccounts).toHaveLength(1);
     });
   });
 
@@ -402,7 +414,7 @@ describe("user actions", () => {
 
       const result = await disable2FA({ access_token: "token", uid: 2 });
       expect(result.success).toBe(true);
-      expect(result.data.success).toBe(true);
+      expect(result.data!.success).toBe(true);
     });
   });
 
@@ -440,9 +452,9 @@ describe("user actions", () => {
 
       const result = await getUserPublicProfile(2);
       expect(result.success).toBe(true);
-      expect(result.data.user.username).toBe("user2");
-      expect(result.data.stats.postsCount).toBe(5);
-      expect(result.data.stats.likesReceived).toBe(7);
+      expect(result.data!.user.username).toBe("user2");
+      expect(result.data!.stats.postsCount).toBe(5);
+      expect(result.data!.stats.likesReceived).toBe(7);
     });
   });
 
@@ -451,13 +463,25 @@ describe("user actions", () => {
   describe("getUsersList 补充测试", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getUsersList({ access_token: "token", page: 1 });
+      const result = await getUsersList({
+        access_token: "token",
+        page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
-      const result = await getUsersList({ access_token: "token", page: 1 });
+      const result = await getUsersList({
+        access_token: "token",
+        page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
@@ -480,7 +504,13 @@ describe("user actions", () => {
       mockPrisma.refreshToken.findFirst.mockResolvedValue(null);
       mockPrisma.$queryRaw.mockResolvedValue([]);
 
-      const result = await getUsersList({ access_token: "token", page: 1 });
+      const result = await getUsersList({
+        access_token: "token",
+        page: 1,
+        pageSize: 25,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       // 可能因为其他原因失败，但不应抛出异常
       expect(result).toBeDefined();
       expect(result).toHaveProperty("success");
@@ -507,6 +537,7 @@ describe("user actions", () => {
       const result = await createUser({
         access_token: "token",
         username: "newuser",
+        email: "new@test.com",
         password: "password123",
       });
       expect(result.success).toBe(false);
@@ -517,6 +548,7 @@ describe("user actions", () => {
       const result = await createUser({
         access_token: "token",
         username: "newuser",
+        email: "new@test.com",
         password: "password123",
       });
       expect(result.success).toBe(false);
@@ -673,7 +705,14 @@ describe("user actions", () => {
       mockPrisma.user.findMany.mockResolvedValue([]);
       mockPrisma.user.count.mockResolvedValue(0);
       const result = await getUsersList(
-        { access_token: "token", page: 1, pageSize: 20, role: ["ADMIN"] },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+          role: ["ADMIN"],
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -684,7 +723,14 @@ describe("user actions", () => {
       mockPrisma.user.findMany.mockResolvedValue([]);
       mockPrisma.user.count.mockResolvedValue(0);
       const result = await getUsersList(
-        { access_token: "token", page: 1, pageSize: 20, search: "test" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+          search: "test",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -699,6 +745,8 @@ describe("user actions", () => {
           access_token: "token",
           page: 1,
           pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
           createdAtStart: "2025-01-01",
           createdAtEnd: "2025-12-31",
         },
@@ -711,7 +759,13 @@ describe("user actions", () => {
       mockAuthSuccess();
       mockPrisma.user.findMany.mockRejectedValue(new Error("DB error"));
       const result = await getUsersList(
-        { access_token: "token", page: 1, pageSize: 20 },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -722,38 +776,26 @@ describe("user actions", () => {
     it("数据库错误时返回失败", async () => {
       mockAuthSuccess();
       mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
-      const result = await getUserProfile(
-        { access_token: "token" },
-        { environment: "serveraction" },
-      );
+      const result = await getUserProfile();
       expect(result.success).toBe(false);
     });
   });
 
   describe("getUserPublicProfile 分支", () => {
     it("无效 uid 返回失败", async () => {
-      const result = await getUserPublicProfile(
-        { uid: -1 },
-        { environment: "serveraction" },
-      );
+      const result = await getUserPublicProfile(-1);
       expect(result.success).toBe(false);
     });
 
     it("用户未找到返回失败", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
-      const result = await getUserPublicProfile(
-        { uid: 999 },
-        { environment: "serveraction" },
-      );
+      const result = await getUserPublicProfile(999);
       expect(result.success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
-      const result = await getUserPublicProfile(
-        { uid: 1 },
-        { environment: "serveraction" },
-      );
+      const result = await getUserPublicProfile(1);
       expect(result.success).toBe(false);
     });
   });
@@ -796,27 +838,18 @@ describe("user actions", () => {
   describe("getUserActivity 分支", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getUserActivity(
-        { uid: 1 },
-        { environment: "serveraction" },
-      );
+      const result = await getUserActivity(1);
       expect(result.success).toBe(false);
     });
 
     it("无效 uid 返回失败", async () => {
-      const result = await getUserActivity(
-        { uid: -1 },
-        { environment: "serveraction" },
-      );
+      const result = await getUserActivity(-1);
       expect(result.success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockPrisma.user.findUnique.mockRejectedValue(new Error("DB error"));
-      const result = await getUserActivity(
-        { uid: 1 },
-        { environment: "serveraction" },
-      );
+      const result = await getUserActivity(1);
       expect(result.success).toBe(false);
     });
   });

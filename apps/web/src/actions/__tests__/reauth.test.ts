@@ -390,7 +390,7 @@ describe("reauth actions", () => {
       const result = await reauthModule.verifyPasswordForReauth(validParams);
 
       expect(result.success).toBe(true);
-      expect(result.data?.requiresTotp).toBe(true);
+      expect((result as any).data?.requiresTotp).toBe(true);
     });
 
     it("无 TOTP 时验证成功应设置 REAUTH_TOKEN", async () => {

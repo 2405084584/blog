@@ -107,10 +107,10 @@ vi.mock("node:fs/promises", () => {
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
-import prisma from "@/lib/server/prisma";
-import { validateData } from "@/lib/server/validator";
 import { getConfigs } from "@/lib/server/config-cache";
+import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
+import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
 const mockValidateData = vi.mocked(validateData);
@@ -126,7 +126,7 @@ function setupSuccessMocks() {
 }
 
 function setupAutoUpdateConfig(mode = "REPOSITORY") {
-  mockGetConfigs.mockImplementation(async (keys: string[]) => {
+  (mockGetConfigs as any).mockImplementation(async (keys: string[]) => {
     const map: Record<string, unknown> = {
       "autoupdate.mode": mode,
       "autoupdate.repo.fullName": "user/neutralpress",
@@ -157,7 +157,7 @@ describe("auto-update actions", () => {
       setupAutoUpdateConfig();
 
       // Mock fetch for GitHub API calls
-      global.fetch = vi.fn(async (url: string) => {
+      (global.fetch as any) = vi.fn(async (url: string) => {
         if (typeof url === "string" && url.includes("releases/latest")) {
           return {
             ok: true,
@@ -239,7 +239,7 @@ describe("auto-update actions", () => {
     it("更新自动更新配置 - 成功路径", async () => {
       setupSuccessMocks();
       setupAutoUpdateConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = {
           config: { upsert: vi.fn().mockResolvedValue({}) },
         };

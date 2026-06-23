@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock prisma
 vi.mock("@/lib/server/prisma", () => {
@@ -12,12 +12,12 @@ vi.mock("@/lib/server/prisma", () => {
   };
 });
 
-import {
-  isVirtualStorage,
-  getVirtualStorageName,
-  getOrCreateVirtualStorage,
-} from "@/lib/server/virtual-storage";
 import prisma from "@/lib/server/prisma";
+import {
+  getOrCreateVirtualStorage,
+  getVirtualStorageName,
+  isVirtualStorage,
+} from "@/lib/server/virtual-storage";
 
 describe("virtual-storage", () => {
   describe("isVirtualStorage", () => {

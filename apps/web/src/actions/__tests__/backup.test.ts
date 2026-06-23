@@ -73,14 +73,14 @@ vi.mock("@/lib/server/cache-bootstrap-targets", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
-import { validateData } from "@/lib/server/validator";
 import {
   createBackupExport,
   dryRunBackupImport as dryRunBackupImportService,
   importBackup as importBackupService,
   initBackupImportUpload as initBackupImportUploadService,
 } from "@/lib/server/backup";
+import limitControl from "@/lib/server/rate-limit";
+import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
 const mockValidateData = vi.mocked(validateData);
@@ -144,7 +144,7 @@ describe("backup actions", () => {
       const { exportBackup } = await import("@/actions/backup");
       const result = await exportBackup({
         access_token: "valid-token",
-        scope: "all",
+        scope: "CONTENT",
       });
 
       expect(result).toEqual(expect.objectContaining({ success: true }));
@@ -157,7 +157,7 @@ describe("backup actions", () => {
       const { exportBackup } = await import("@/actions/backup");
       const result = await exportBackup({
         access_token: "valid-token",
-        scope: "all",
+        scope: "CONTENT",
       });
 
       expect(result).toEqual(
@@ -216,7 +216,7 @@ describe("backup actions", () => {
     it("预检通过 - 成功路径", async () => {
       setupSuccessMocks();
       vi.mocked(dryRunBackupImportService).mockResolvedValue({
-        scope: "all",
+        scope: "CONTENT",
         checksum: "abc123",
         ready: true,
         issues: [],
@@ -227,7 +227,7 @@ describe("backup actions", () => {
       const result = await dryRunBackupImport({
         access_token: "valid-token",
         source: { type: "DIRECT", content: "base64content" },
-        scope: "all",
+        scope: "CONTENT",
       });
 
       expect(result).toEqual(expect.objectContaining({ success: true }));
@@ -241,7 +241,7 @@ describe("backup actions", () => {
       const result = await dryRunBackupImport({
         access_token: "valid-token",
         source: { type: "DIRECT", content: largeContent },
-        scope: "all",
+        scope: "CONTENT",
       });
 
       expect(result).toEqual(
@@ -257,7 +257,7 @@ describe("backup actions", () => {
     it("执行导入 - 成功路径", async () => {
       setupSuccessMocks();
       vi.mocked(importBackupService).mockResolvedValue({
-        scope: "all",
+        scope: "CONTENT",
         checksum: "abc123",
         summary: { deletedRows: 0, insertedRows: 10 },
       } as never);
@@ -266,7 +266,7 @@ describe("backup actions", () => {
       const result = await importBackup({
         access_token: "valid-token",
         source: { type: "DIRECT", content: "base64content" },
-        scope: "all",
+        scope: "CONTENT",
         expectedChecksum: "abc123",
         confirmText: "CONFIRM",
       });
@@ -282,7 +282,7 @@ describe("backup actions", () => {
       const result = await importBackup({
         access_token: "valid-token",
         source: { type: "DIRECT", content: "base64content" },
-        scope: "all",
+        scope: "CONTENT",
         expectedChecksum: "abc123",
         confirmText: "CONFIRM",
       });

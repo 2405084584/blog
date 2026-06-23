@@ -217,7 +217,7 @@ describe("analytics actions", () => {
 
         // eval 被调用时，ARGV[1] 是 JSON 字符串（index 4）
         const evalCall = mockRedis.eval.mock.calls[0];
-        const pageViewDataJson = evalCall[4] as string;
+        const pageViewDataJson = evalCall![4] as string;
         const pageViewData = JSON.parse(pageViewDataJson);
         expect(pageViewData.path).toBe("/posts/hello");
         expect(pageViewData.visitorId).toBe("visitor-123");
@@ -243,7 +243,7 @@ describe("analytics actions", () => {
         });
 
         const evalCall = mockRedis.eval.mock.calls[0];
-        const pageViewData = JSON.parse(evalCall[4] as string);
+        const pageViewData = JSON.parse(evalCall![4] as string);
         expect(pageViewData.deviceType).toBe("desktop");
       });
 
@@ -265,7 +265,7 @@ describe("analytics actions", () => {
         });
 
         const evalCall = mockRedis.eval.mock.calls[0];
-        const pageViewData = JSON.parse(evalCall[4] as string);
+        const pageViewData = JSON.parse(evalCall![4] as string);
         expect(pageViewData.deviceType).toBe("mobile");
       });
 
@@ -281,7 +281,7 @@ describe("analytics actions", () => {
         });
 
         const evalCall = mockRedis.eval.mock.calls[0];
-        const pageViewData = JSON.parse(evalCall[4] as string);
+        const pageViewData = JSON.parse(evalCall![4] as string);
         expect(pageViewData.deviceType).toBe("bot");
       });
     });
@@ -583,8 +583,12 @@ describe("analytics actions", () => {
         mockAuthVerify.mockResolvedValue(null);
         const result = await getPageViews({
           access_token: "token",
-        });
-        expect(result.success).toBe(false);
+          page: 1,
+          pageSize: 10,
+          sortBy: "timestamp",
+          sortOrder: "desc",
+        } as any);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -598,11 +602,11 @@ describe("analytics actions", () => {
           access_token: "token",
           page: 1,
           pageSize: 25,
-        });
+        } as any);
 
-        expect(result.success).toBe(true);
-        expect(result.meta).toBeDefined();
-        expect(result.meta.total).toBe(100);
+        expect((result as any).success).toBe(true);
+        expect((result as any).meta).toBeDefined();
+        expect((result as any).meta.total).toBe(100);
       });
 
       it("默认 page=1, pageSize=25", async () => {
@@ -612,7 +616,11 @@ describe("analytics actions", () => {
 
         await getPageViews({
           access_token: "token",
-        });
+          page: 1,
+          pageSize: 10,
+          sortBy: "timestamp",
+          sortOrder: "desc",
+        } as any);
 
         expect(mockPrisma.pageView.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -631,7 +639,11 @@ describe("analytics actions", () => {
 
         await getPageViews({
           access_token: "token",
-        });
+          page: 1,
+          pageSize: 10,
+          sortBy: "timestamp",
+          sortOrder: "desc",
+        } as any);
 
         expect(mockPrisma.pageView.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -650,7 +662,11 @@ describe("analytics actions", () => {
         await getPageViews({
           access_token: "token",
           path: "/posts/hello",
-        });
+          page: 1,
+          pageSize: 10,
+          sortBy: "timestamp",
+          sortOrder: "desc",
+        } as any);
 
         expect(mockPrisma.pageView.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -692,11 +708,15 @@ describe("analytics actions", () => {
 
         const result = await getPageViews({
           access_token: "token",
-        });
+          page: 1,
+          pageSize: 10,
+          sortBy: "timestamp",
+          sortOrder: "desc",
+        } as any);
 
-        expect(result.success).toBe(true);
-        expect(result.data).toHaveLength(1);
-        expect(result.data[0].path).toBe("/test");
+        expect((result as any).success).toBe(true);
+        expect((result as any).data).toHaveLength(1);
+        expect((result as any).data[0].path).toBe("/test");
       });
     });
   });
@@ -709,7 +729,8 @@ describe("analytics actions", () => {
         mockAuthVerify.mockResolvedValue(null);
         const result = await getRealTimeStats({
           access_token: "token",
-        });
+          minutes: 30,
+        } as any);
         expect(result.success).toBe(false);
       });
     });
@@ -721,7 +742,8 @@ describe("analytics actions", () => {
 
         const result = await getRealTimeStats({
           access_token: "token",
-        });
+          minutes: 30,
+        } as any);
 
         expect(result.success).toBe(true);
       });
@@ -822,8 +844,8 @@ describe("analytics actions", () => {
 
         const result = await batchGetViewCounts(["/page1", "/page2"]);
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ path: "/page1", count: 100 });
-        expect(result[1]).toEqual({ path: "/page2", count: 200 });
+        expect(result[0]!).toEqual({ path: "/page1", count: 100 });
+        expect(result[1]!).toEqual({ path: "/page2", count: 200 });
       });
 
       it("Redis 返回 null 时应返回 0", async () => {
@@ -831,8 +853,8 @@ describe("analytics actions", () => {
 
         const result = await batchGetViewCounts(["/page1", "/page2"]);
         expect(result).toHaveLength(2);
-        expect(result[0].count).toBe(0);
-        expect(result[1].count).toBe(0);
+        expect(result[0]!.count).toBe(0);
+        expect(result[1]!.count).toBe(0);
       });
 
       it("单个路径应正常工作", async () => {
@@ -848,9 +870,9 @@ describe("analytics actions", () => {
 
         const result = await batchGetViewCounts(["/a", "/b", "/c"]);
         expect(result).toHaveLength(3);
-        expect(result[0].count).toBe(100);
-        expect(result[1].count).toBe(0);
-        expect(result[2].count).toBe(300);
+        expect(result[0]!.count).toBe(100);
+        expect(result[1]!.count).toBe(0);
+        expect(result[2]!.count).toBe(300);
       });
 
       it("恰好 20 个路径应正常工作", async () => {

@@ -179,19 +179,19 @@ vi.mock("next/server", () => ({
 // ============================================================================
 
 import {
-  getPostsList,
-  getPostDetail,
   createPost,
-  updatePost,
   deletePosts,
-  getPostsTrends,
+  getPostDetail,
   getPostHistory,
+  getPostsList,
+  getPostsTrends,
   getPostVersion,
-  unlockProtectedPost,
   getProtectedPostContent,
-  updatePosts,
   resetPostToVersion,
   squashPostToVersion,
+  unlockProtectedPost,
+  updatePost,
+  updatePosts,
 } from "@/actions/post";
 
 // ============================================================================
@@ -232,7 +232,7 @@ const POST_RECORD = {
   viewCount: { cachedCount: 10 },
 };
 
-function mockAuthSuccess(user = ADMIN_USER) {
+function mockAuthSuccess(user: any = ADMIN_USER) {
   mockAuthVerify.mockResolvedValue(user);
 }
 function mockAuthFailure() {
@@ -280,7 +280,13 @@ describe("post actions", () => {
       mockPrismaPostFindMany.mockResolvedValue([POST_RECORD]);
       mockPrismaPostCount.mockResolvedValue(1);
       const result = await getPostsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -289,7 +295,13 @@ describe("post actions", () => {
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await getPostsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -298,7 +310,13 @@ describe("post actions", () => {
     it("速率限制时返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPostsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -373,7 +391,7 @@ describe("post actions", () => {
           access_token: "token",
           title: "New Post",
           content: "# New Post Content",
-        },
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -388,7 +406,7 @@ describe("post actions", () => {
           title: "New Post",
           slug: "existing",
           content: "content",
-        },
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -399,25 +417,26 @@ describe("post actions", () => {
     it("成功更新文章", async () => {
       mockAuthSuccess(EDITOR_USER);
       mockPrismaPostFindUnique.mockResolvedValue(POST_RECORD);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
-        fn({
-          mediaReference: { deleteMany: vi.fn() },
-          post: {
-            update: vi.fn().mockResolvedValue({
-              id: 1,
-              title: "Updated Title",
-              slug: "test-post",
-              status: "PUBLISHED",
-              accessMode: "PUBLIC",
-              minRole: null,
-              accessPasswords: [],
-              accessVersion: 1,
-              publishedAt: new Date(),
-              categories: [{ fullSlug: "tech" }],
-              tags: [{ slug: "test" }],
-            }),
-          },
-        }),
+      mockPrismaTransaction.mockImplementation(
+        async (fn: (...args: any[]) => any) =>
+          fn({
+            mediaReference: { deleteMany: vi.fn() },
+            post: {
+              update: vi.fn().mockResolvedValue({
+                id: 1,
+                title: "Updated Title",
+                slug: "test-post",
+                status: "PUBLISHED",
+                accessMode: "PUBLIC",
+                minRole: null,
+                accessPasswords: [],
+                accessVersion: 1,
+                publishedAt: new Date(),
+                categories: [{ fullSlug: "tech" }],
+                tags: [{ slug: "test" }],
+              }),
+            },
+          }),
       );
       const result = await updatePost(
         {
@@ -505,7 +524,7 @@ describe("post actions", () => {
       });
       // Mock user query for version user
       const prisma = await import("@/lib/server/prisma");
-      (prisma.default as Record<string, unknown>).user = {
+      (prisma.default as unknown as Record<string, unknown>).user = {
         findUnique: vi.fn().mockResolvedValue({
           uid: 2,
           username: "editor",
@@ -513,7 +532,7 @@ describe("post actions", () => {
         }),
       };
       const result = await getPostHistory(
-        { access_token: "token", slug: "test-post" },
+        { access_token: "token", slug: "test-post" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -540,7 +559,7 @@ describe("post actions", () => {
       };
       Object.assign(mockTextVersionImpl, mockTvInstance);
       const prisma = await import("@/lib/server/prisma");
-      (prisma.default as Record<string, unknown>).user = {
+      (prisma.default as unknown as Record<string, unknown>).user = {
         findUnique: vi.fn().mockResolvedValue({
           uid: 2,
           username: "editor",
@@ -733,7 +752,7 @@ describe("post actions", () => {
           slug: "test",
         });
         expect(result.success).toBe(true);
-        expect(result.data.content).toBe("# Protected");
+        expect(result.data!.content).toBe("# Protected");
       });
     });
   });
@@ -797,7 +816,7 @@ describe("post actions", () => {
           status: "ARCHIVED",
         });
         expect(result.success).toBe(true);
-        expect(result.data.updated).toBe(2);
+        expect(result.data!.updated).toBe(2);
       });
     });
   });
@@ -961,7 +980,7 @@ describe("post actions", () => {
         userUid: 999, // different user
       });
       const result = await updatePost(
-        { access_token: "token", id: 1, title: "Hacked" },
+        { access_token: "token", id: 1, title: "Hacked" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -975,7 +994,7 @@ describe("post actions", () => {
         slug: "existing-slug",
       });
       const result = await updatePost(
-        { access_token: "token", id: 1, newSlug: "existing-slug" },
+        { access_token: "token", id: 1, newSlug: "existing-slug" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -985,7 +1004,7 @@ describe("post actions", () => {
       mockAuthSuccess();
       mockPrismaPostFindUnique.mockRejectedValue(new Error("DB error"));
       const result = await updatePost(
-        { access_token: "token", id: 1, title: "Updated" },
+        { access_token: "token", id: 1, title: "Updated" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -1014,7 +1033,7 @@ describe("post actions", () => {
           title: "New Post",
           content: "Content",
           status: "DRAFT",
-        },
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -1052,7 +1071,13 @@ describe("post actions", () => {
       mockPrismaPostFindMany.mockResolvedValue([]);
       mockPrismaPostCount.mockResolvedValue(0);
       const result = await getPostsList(
-        { access_token: "token", page: 1, pageSize: 20 },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -1063,7 +1088,7 @@ describe("post actions", () => {
       mockPrismaPostFindMany.mockResolvedValue([]);
       mockPrismaPostCount.mockResolvedValue(0);
       const result = await getPostsList(
-        { access_token: "token", page: 1, pageSize: 20, search: "test" },
+        { access_token: "token", page: 1, pageSize: 20, search: "test" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -1073,7 +1098,7 @@ describe("post actions", () => {
       mockAuthSuccess();
       mockPrismaPostFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getPostsList(
-        { access_token: "token", page: 1, pageSize: 20 },
+        { access_token: "token", page: 1, pageSize: 20 } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);

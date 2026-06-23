@@ -6,7 +6,7 @@ import {
   SuperscriptWithMarkdown,
   TextAlignWithMarkdown,
   UnderlineWithMarkdown,
-} from "../markdown-extensions";
+} from "@/lib/tiptap/markdown-extensions";
 
 function getRenderMarkdown(ext: { config?: Record<string, unknown> }) {
   return ext.config?.renderMarkdown as (
@@ -29,7 +29,7 @@ describe("markdown-extensions", () => {
     });
 
     it("renderMarkdown 应序列化为 <mark> 标签", () => {
-      const renderMarkdown = getRenderMarkdown(HighlightWithMarkdown);
+      const renderMarkdown = getRenderMarkdown(HighlightWithMarkdown as any);
       expect(renderMarkdown).toBeDefined();
 
       const mockHelpers = { renderChildren: vi.fn(() => "高亮文本") };
@@ -44,7 +44,7 @@ describe("markdown-extensions", () => {
     });
 
     it("renderMarkdown 应序列化为 <sup> 标签", () => {
-      const renderMarkdown = getRenderMarkdown(SuperscriptWithMarkdown);
+      const renderMarkdown = getRenderMarkdown(SuperscriptWithMarkdown as any);
       expect(renderMarkdown).toBeDefined();
 
       const mockHelpers = { renderChildren: vi.fn(() => "上标") };
@@ -59,7 +59,7 @@ describe("markdown-extensions", () => {
     });
 
     it("renderMarkdown 应序列化为 <sub> 标签", () => {
-      const renderMarkdown = getRenderMarkdown(SubscriptWithMarkdown);
+      const renderMarkdown = getRenderMarkdown(SubscriptWithMarkdown as any);
       expect(renderMarkdown).toBeDefined();
 
       const mockHelpers = { renderChildren: vi.fn(() => "下标") };

@@ -145,18 +145,18 @@ vi.mock("@/lib/server/notice", () => ({ sendNotice: vi.fn() }));
 // ============================================================================
 
 import {
-  getPostComments,
-  getCommentReplies,
-  getDirectChildren,
   createComment,
-  updateCommentStatus,
   deleteComments,
-  getCommentsAdmin,
+  deleteOwnComment,
   getCommentHistory,
+  getCommentReplies,
+  getCommentsAdmin,
   getCommentStats,
+  getDirectChildren,
+  getPostComments,
   likeComment,
   unlikeComment,
-  deleteOwnComment,
+  updateCommentStatus,
 } from "@/actions/comment";
 
 // ============================================================================
@@ -198,7 +198,7 @@ const COMMENT_RECORD = {
   parent: null,
 };
 
-function mockAuthSuccess(user = ADMIN_USER) {
+function mockAuthSuccess(user: any = ADMIN_USER) {
   mockAuthVerify.mockResolvedValue(user);
 }
 function mockAuthFailure() {
@@ -247,19 +247,19 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(1);
       mockPrismaCommentLikeFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("评论功能关闭时返回禁止", async () => {
       mockGetConfig.mockResolvedValue(false);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("目标不存在时返回 404", async () => {
@@ -267,10 +267,10 @@ describe("comment actions", () => {
       mockPrismaPageFindFirst.mockResolvedValue(null);
       mockPrismaPostFindUnique.mockResolvedValue(null);
       const result = await getPostComments(
-        { slug: "nonexistent", pageSize: 10 },
+        { slug: "nonexistent", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("评论关闭的文章返回禁止", async () => {
@@ -284,19 +284,19 @@ describe("comment actions", () => {
         publishedAt: new Date(),
       });
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("速率限制时返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -337,7 +337,7 @@ describe("comment actions", () => {
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("验证码失败时返回错误", async () => {
@@ -350,7 +350,7 @@ describe("comment actions", () => {
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("匿名评论关闭时未登录用户返回未授权", async () => {
@@ -374,7 +374,7 @@ describe("comment actions", () => {
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -387,7 +387,7 @@ describe("comment actions", () => {
         { ids: ["comment-1"], status: "REJECTED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("未认证时返回未授权", async () => {
@@ -396,7 +396,7 @@ describe("comment actions", () => {
         { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -406,10 +406,10 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([COMMENT_RECORD]);
       mockPrismaCommentUpdateMany.mockResolvedValue({ count: 1 });
       const result = await deleteComments(
-        { ids: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -420,19 +420,29 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([COMMENT_RECORD]);
       mockPrismaCommentLikeFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 1, pageSize: 10 },
+        {
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await getCommentsAdmin(
-        { page: 1, pageSize: 10 },
+        {
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -441,11 +451,11 @@ describe("comment actions", () => {
       mockAuthSuccess(EDITOR_USER);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentHistory(
-        { access_token: "token", days: 7 },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(7);
+      expect((result as any).success).toBe(true);
+      expect((result as any).data).toHaveLength(7);
     });
   });
 
@@ -459,7 +469,7 @@ describe("comment actions", () => {
         { access_token: "token" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
       expect(result.data!.total).toBe(0);
     });
   });
@@ -468,7 +478,7 @@ describe("comment actions", () => {
     it("成功点赞评论", async () => {
       mockAuthSuccess(REGULAR_USER);
       mockPrismaCommentFindUnique.mockResolvedValue({ id: "comment-1" });
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           commentLike: {
             findUnique: vi.fn().mockResolvedValue(null),
@@ -481,36 +491,36 @@ describe("comment actions", () => {
         }),
       );
       const result = await likeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("未登录时返回未授权", async () => {
       mockAuthFailure();
       const result = await likeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("评论不存在时返回 404", async () => {
       mockAuthSuccess(REGULAR_USER);
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await likeComment(
-        { commentId: "nonexistent" },
+        { commentId: "00000000-0000-0000-0000-000000000099" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
   describe("unlikeComment", () => {
     it("成功取消点赞", async () => {
       mockAuthSuccess(REGULAR_USER);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           commentLike: {
             findUnique: vi
@@ -525,10 +535,10 @@ describe("comment actions", () => {
         }),
       );
       const result = await unlikeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -541,10 +551,10 @@ describe("comment actions", () => {
       });
       mockPrismaCommentUpdate.mockResolvedValue({});
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("删除他人评论时返回禁止", async () => {
@@ -554,20 +564,20 @@ describe("comment actions", () => {
         userUid: 999,
       });
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("评论不存在时返回 404", async () => {
       mockAuthSuccess(REGULAR_USER);
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await deleteOwnComment(
-        { commentId: "nonexistent" },
+        { commentId: "00000000-0000-0000-0000-000000000099" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -577,10 +587,10 @@ describe("comment actions", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPostComments(
-        { postId: 1, page: 1, pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -588,10 +598,10 @@ describe("comment actions", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -599,10 +609,10 @@ describe("comment actions", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await likeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -610,10 +620,10 @@ describe("comment actions", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await unlikeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -624,10 +634,10 @@ describe("comment actions", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
         const result = await getCommentReplies(
-          { commentId: "comment-1", maxDepth: 3 },
+          { commentId: "00000000-0000-0000-0000-000000000001", maxDepth: 3 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -635,10 +645,10 @@ describe("comment actions", () => {
       it("评论不存在时应返回 404", async () => {
         mockPrismaCommentFindUnique.mockResolvedValue(null);
         const result = await getCommentReplies(
-          { commentId: "nonexistent", maxDepth: 3 },
+          { commentId: "00000000-0000-0000-0000-000000000099", maxDepth: 3 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -650,10 +660,10 @@ describe("comment actions", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
         const result = await getDirectChildren(
-          { postSlug: "test-post", page: 1, pageSize: 10 },
+          { postSlug: "test-post", parentId: null, pageSize: 10 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -661,10 +671,10 @@ describe("comment actions", () => {
       it("评论功能关闭时应返回禁止", async () => {
         mockGetConfig.mockResolvedValue(false);
         const result = await getDirectChildren(
-          { postSlug: "test-post", page: 1, pageSize: 10 },
+          { postSlug: "test-post", parentId: null, pageSize: 10 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
 
       it("目标不存在时应返回 404", async () => {
@@ -673,10 +683,10 @@ describe("comment actions", () => {
         mockPrismaPostFindUnique.mockResolvedValue(null);
         mockPrismaPageFindFirst.mockResolvedValue(null);
         const result = await getDirectChildren(
-          { postSlug: "nonexistent", page: 1, pageSize: 10 },
+          { postSlug: "nonexistent", parentId: null, pageSize: 10 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -687,10 +697,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPostComments(
-        { postId: 1 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -698,10 +708,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -709,10 +719,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -720,10 +730,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -731,10 +741,15 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentsAdmin(
-        {},
+        {
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -742,10 +757,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -753,7 +768,7 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -761,10 +776,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await likeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -772,10 +787,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await unlikeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -783,19 +798,19 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未登录时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -803,10 +818,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentReplies(
-        { commentId: "comment-1", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000001", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -814,10 +829,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getDirectChildren(
-        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { postSlug: "test-post", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -825,10 +840,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -836,10 +851,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -847,10 +862,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -858,10 +873,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -869,10 +884,15 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentsAdmin(
-        {},
+        {
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -880,10 +900,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -891,7 +911,7 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -899,10 +919,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await likeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -910,10 +930,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await unlikeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -921,10 +941,10 @@ describe("comment actions", () => {
     it("评论功能关闭时返回禁止", async () => {
       mockGetConfig.mockResolvedValue(false);
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -938,10 +958,10 @@ describe("comment actions", () => {
       });
       mockPrismaCommentCreate.mockRejectedValue(new Error("DB error"));
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -950,10 +970,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await deleteOwnComment(
-        { commentId: "nonexistent" },
+        { commentId: "00000000-0000-0000-0000-000000000099" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("删除他人评论时返回 403", async () => {
@@ -963,10 +983,10 @@ describe("comment actions", () => {
         userUid: 999,
       });
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -974,10 +994,10 @@ describe("comment actions", () => {
     it("评论不存在时返回 404", async () => {
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await getCommentReplies(
-        { commentId: "nonexistent", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000099", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -985,10 +1005,10 @@ describe("comment actions", () => {
     it("评论功能关闭时返回禁止", async () => {
       mockGetConfig.mockResolvedValue(false);
       const result = await getDirectChildren(
-        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { postSlug: "test-post", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -999,10 +1019,10 @@ describe("comment actions", () => {
       mockPrismaPostFindUnique.mockResolvedValue(null);
       mockPrismaPageFindFirst.mockResolvedValue(null);
       const result = await getPostComments(
-        { slug: "nonexistent" },
+        { slug: "nonexistent", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1011,10 +1031,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockGetConfig.mockResolvedValue(false);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1031,10 +1051,10 @@ describe("comment actions", () => {
         userUid: 1,
       });
       const result = await likeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1047,10 +1067,10 @@ describe("comment actions", () => {
       });
       mockPrismaCommentLikeFindUnique.mockResolvedValue(null);
       const result = await unlikeComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1065,10 +1085,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1077,10 +1097,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockGetConfig.mockResolvedValue(true);
       const result = await createComment(
-        { postId: 1, content: "" },
+        { slug: "test-post", content: "" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1090,7 +1110,7 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(100);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1100,10 +1120,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 2, pageSize: 10 },
+        {
+          page: 2,
+          pageSize: 10,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1118,11 +1143,11 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+      expect((result as any).success).toBe(true);
+      expect((result as any).data).toEqual([]);
     });
   });
 
@@ -1130,7 +1155,7 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1138,10 +1163,15 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentsAdmin(
-        {},
+        {
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1149,10 +1179,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1165,10 +1195,10 @@ describe("comment actions", () => {
         allowComments: false,
       });
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1178,10 +1208,10 @@ describe("comment actions", () => {
       mockGetConfig.mockResolvedValue(true);
       mockPrismaPostFindUnique.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 999, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1194,10 +1224,10 @@ describe("comment actions", () => {
       });
       mockPrismaCommentUpdate.mockResolvedValue({});
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1206,10 +1236,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await likeComment(
-        { commentId: "nonexistent" },
+        { commentId: "00000000-0000-0000-0000-000000000099" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1219,10 +1249,16 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { status: "PENDING" },
+        {
+          page: 1,
+          pageSize: 25,
+          status: ["PENDING"] as const,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1230,7 +1266,7 @@ describe("comment actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1238,10 +1274,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentReplies(
-        { commentId: "comment-1", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000001", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1249,10 +1285,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getDirectChildren(
-        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { postSlug: "test-post", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1260,10 +1296,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1271,10 +1307,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1282,10 +1318,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1293,10 +1329,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1306,10 +1342,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 3, pageSize: 20 },
+        {
+          page: 3,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1317,10 +1358,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1328,7 +1369,7 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1336,10 +1377,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1347,10 +1388,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1365,10 +1406,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1376,10 +1417,10 @@ describe("comment actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1387,10 +1428,10 @@ describe("comment actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1398,10 +1439,15 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentsAdmin(
-        {},
+        {
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1409,10 +1455,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1422,7 +1468,7 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(100);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1430,10 +1476,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentReplies(
-        { commentId: "comment-1", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000001", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1444,10 +1490,10 @@ describe("comment actions", () => {
       mockPrismaPostFindUnique.mockResolvedValue(null);
       mockPrismaPageFindFirst.mockResolvedValue(null);
       const result = await getDirectChildren(
-        { postSlug: "nonexistent", page: 1, pageSize: 10 },
+        { postSlug: "nonexistent", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1462,10 +1508,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1474,10 +1520,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockGetConfig.mockResolvedValue(true);
       const result = await createComment(
-        { postId: 1, content: "" },
+        { slug: "test-post", content: "" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1485,10 +1531,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1496,10 +1542,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1509,10 +1555,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 5, pageSize: 20 },
+        {
+          page: 5,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1520,10 +1571,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1531,7 +1582,7 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1546,10 +1597,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 5 },
+        { slug: "test-post", pageSize: 5, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1557,10 +1608,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1568,10 +1619,10 @@ describe("comment actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1579,10 +1630,10 @@ describe("comment actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1590,10 +1641,15 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentsAdmin(
-        {},
+        {
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1601,10 +1657,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1614,7 +1670,7 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(100);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1622,10 +1678,10 @@ describe("comment actions", () => {
     it("评论不存在时返回 404", async () => {
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await getCommentReplies(
-        { commentId: "nonexistent", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000099", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1633,10 +1689,10 @@ describe("comment actions", () => {
     it("评论功能关闭时返回禁止", async () => {
       mockGetConfig.mockResolvedValue(false);
       const result = await getDirectChildren(
-        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { postSlug: "test-post", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1649,10 +1705,10 @@ describe("comment actions", () => {
         allowComments: false,
       });
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1662,10 +1718,10 @@ describe("comment actions", () => {
       mockGetConfig.mockResolvedValue(true);
       mockPrismaPostFindUnique.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 999, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1673,10 +1729,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1691,10 +1747,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 5 },
+        { slug: "test-post", pageSize: 5, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1703,10 +1759,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockGetConfig.mockResolvedValue(true);
       const result = await createComment(
-        { postId: 1, content: "" },
+        { slug: "test-post", content: "" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1714,10 +1770,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1725,10 +1781,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1738,10 +1794,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 3, pageSize: 20 },
+        {
+          page: 3,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1749,10 +1810,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1762,7 +1823,7 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(100);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1771,10 +1832,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await likeComment(
-        { commentId: "nonexistent" },
+        { commentId: "00000000-0000-0000-0000-000000000099" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1782,10 +1843,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentReplies(
-        { commentId: "comment-1", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000001", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1793,10 +1854,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getDirectChildren(
-        { postSlug: "test-post", page: 1, pageSize: 10 },
+        { postSlug: "test-post", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1811,10 +1872,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1822,10 +1883,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1833,10 +1894,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1844,10 +1905,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1857,10 +1918,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 5, pageSize: 20 },
+        {
+          page: 5,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1868,10 +1934,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1879,7 +1945,7 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1894,10 +1960,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1906,10 +1972,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockGetConfig.mockResolvedValue(true);
       const result = await createComment(
-        { postId: 1, content: "" },
+        { slug: "test-post", content: "" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1917,10 +1983,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1928,10 +1994,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1941,10 +2007,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 5, pageSize: 20 },
+        {
+          page: 5,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1952,10 +2023,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1965,7 +2036,7 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(100);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1978,10 +2049,10 @@ describe("comment actions", () => {
         allowComments: false,
       });
       const result = await getPostComments(
-        { slug: "test-post" },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1991,10 +2062,10 @@ describe("comment actions", () => {
       mockGetConfig.mockResolvedValue(true);
       mockPrismaPostFindUnique.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 999, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2002,10 +2073,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteOwnComment(
-        { commentId: "comment-1" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2013,10 +2084,10 @@ describe("comment actions", () => {
     it("评论不存在时返回 404", async () => {
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await getCommentReplies(
-        { commentId: "nonexistent", maxDepth: 3 },
+        { commentId: "00000000-0000-0000-0000-000000000099", maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2027,10 +2098,10 @@ describe("comment actions", () => {
       mockPrismaPostFindUnique.mockResolvedValue(null);
       mockPrismaPageFindFirst.mockResolvedValue(null);
       const result = await getDirectChildren(
-        { postSlug: "nonexistent", page: 1, pageSize: 10 },
+        { postSlug: "nonexistent", parentId: null, pageSize: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2045,10 +2116,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 5 },
+        { slug: "test-post", pageSize: 5, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2056,10 +2127,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2067,10 +2138,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2080,10 +2151,15 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { page: 5, pageSize: 20 },
+        {
+          page: 5,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2091,10 +2167,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2104,7 +2180,7 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(100);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2113,10 +2189,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockPrismaCommentFindUnique.mockResolvedValue(null);
       const result = await likeComment(
-        { commentId: "nonexistent" },
+        { commentId: "00000000-0000-0000-0000-000000000099" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2131,10 +2207,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2142,10 +2218,10 @@ describe("comment actions", () => {
     it("未认证时应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await createComment(
-        { postId: 1, content: "Test" },
+        { slug: "test-post", content: "Test" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2153,10 +2229,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateCommentStatus(
-        { commentId: "comment-1", status: "APPROVED" },
+        { ids: ["comment-1"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2164,10 +2240,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await deleteComments(
-        { commentIds: ["comment-1"] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2175,10 +2251,15 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentsAdmin(
-        {},
+        {
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2186,10 +2267,10 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentHistory(
-        { commentId: "comment-1" },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2197,7 +2278,7 @@ describe("comment actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCommentStats({}, { environment: "serveraction" });
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2212,10 +2293,10 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 10 },
+        { slug: "test-post", pageSize: 10, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2224,10 +2305,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "USER" });
       mockGetConfig.mockResolvedValue(true);
       const result = await createComment(
-        { postId: 1, content: "" },
+        { slug: "test-post", content: "" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2245,10 +2326,14 @@ describe("comment actions", () => {
       });
       mockPrismaCommentFindUnique.mockResolvedValue(null); // parent not found
       const result = await createComment(
-        { postId: 1, content: "Reply", parentId: 999 },
+        {
+          slug: "test-post",
+          content: "Reply",
+          parentId: "00000000-0000-0000-0000-000000000099",
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("parentId 对应的父评论属于不同文章返回失败", async () => {
@@ -2269,10 +2354,14 @@ describe("comment actions", () => {
         replyCount: 0,
       });
       const result = await createComment(
-        { postId: 1, content: "Reply", parentId: 999 },
+        {
+          slug: "test-post",
+          content: "Reply",
+          parentId: "00000000-0000-0000-0000-000000000099",
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2293,10 +2382,10 @@ describe("comment actions", () => {
         deletedAt: null,
       });
       const result = await createComment(
-        { postId: 1, content: "Anonymous comment" },
+        { slug: "test-post", content: "Anonymous comment" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2352,11 +2441,11 @@ describe("comment actions", () => {
       mockPrismaCommentLikeFindMany.mockResolvedValue([]);
 
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 20 },
+        { slug: "test-post", pageSize: 20, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      expect((result as any).success).toBe(true);
+      expect((result as any).data).toBeDefined();
     });
 
     it("登录用户看到自己的待审评论", async () => {
@@ -2392,10 +2481,10 @@ describe("comment actions", () => {
       mockPrismaCommentLikeFindMany.mockResolvedValue([]);
 
       const result = await getPostComments(
-        { slug: "test-post", pageSize: 20 },
+        { slug: "test-post", pageSize: 20, maxDepth: 3 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2409,10 +2498,10 @@ describe("comment actions", () => {
         { status: "PENDING" },
       ]);
       const result = await getCommentStats(
-        { access_token: "token", force: true },
+        { force: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2430,10 +2519,10 @@ describe("comment actions", () => {
         weekCount: 5,
       });
       const result = await getCommentStats(
-        { access_token: "token", force: false },
+        { force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("force=true 时跳过缓存", async () => {
@@ -2443,10 +2532,10 @@ describe("comment actions", () => {
         { status: "PENDING" },
       ]);
       const result = await getCommentStats(
-        { access_token: "token", force: true },
+        { force: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("AUTHOR 角色过滤到自己的文章", async () => {
@@ -2458,19 +2547,19 @@ describe("comment actions", () => {
         { status: "PENDING" },
       ]);
       const result = await getCommentStats(
-        { access_token: "token", force: true },
+        { force: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("数据库错误时返回失败", async () => {
       mockPrismaCommentCount.mockRejectedValue(new Error("DB error"));
       const result = await getCommentStats(
-        { access_token: "token", force: true },
+        { force: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2480,30 +2569,47 @@ describe("comment actions", () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { access_token: "token", page: 1, pageSize: 20 },
+        {
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("带 uid 过滤", async () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { access_token: "token", page: 1, pageSize: 20, uid: 3 },
+        {
+          page: 1,
+          pageSize: 20,
+          uid: 3,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("带 parentOnly 过滤", async () => {
       mockPrismaCommentCount.mockResolvedValue(0);
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
-        { access_token: "token", page: 1, pageSize: 20, parentOnly: true },
+        {
+          page: 1,
+          pageSize: 20,
+          parentOnly: true,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("带 status 数组过滤", async () => {
@@ -2511,14 +2617,15 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
         {
-          access_token: "token",
           page: 1,
           pageSize: 20,
           status: ["APPROVED", "PENDING"],
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("带 slug 过滤", async () => {
@@ -2527,14 +2634,15 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
         {
-          access_token: "token",
           page: 1,
           pageSize: 20,
           slug: "test-post",
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("带 search 过滤", async () => {
@@ -2542,14 +2650,15 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentsAdmin(
         {
-          access_token: "token",
           page: 1,
           pageSize: 20,
           search: "keyword",
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2559,19 +2668,19 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([{ id: 1 }]);
       mockPrismaCommentUpdateMany.mockResolvedValue({ count: 1 });
       const result = await deleteComments(
-        { access_token: "token", ids: [1] },
+        { ids: ["00000000-0000-0000-0000-000000000001"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("无匹配评论时返回成功", async () => {
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await deleteComments(
-        { access_token: "token", ids: [999] },
+        { ids: ["00000000-0000-0000-0000-00000000000999"] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2581,19 +2690,19 @@ describe("comment actions", () => {
       mockPrismaCommentFindMany.mockResolvedValue([{ id: 1 }]);
       mockPrismaCommentUpdateMany.mockResolvedValue({ count: 1 });
       const result = await updateCommentStatus(
-        { access_token: "token", ids: [1], status: "APPROVED" },
+        { ids: ["00000000-0000-0000-0000-000000000001"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("无匹配评论时返回成功", async () => {
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await updateCommentStatus(
-        { access_token: "token", ids: [999], status: "APPROVED" },
+        { ids: ["00000000-0000-0000-0000-00000000000999"], status: "APPROVED" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2602,10 +2711,10 @@ describe("comment actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 5, role: "AUTHOR" });
       mockPrismaCommentFindMany.mockResolvedValue([]);
       const result = await getCommentHistory(
-        { access_token: "token", days: 30 },
+        { days: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("有数据时正确聚合", async () => {
@@ -2629,10 +2738,10 @@ describe("comment actions", () => {
         },
       ]);
       const result = await getCommentHistory(
-        { access_token: "token", days: 7 },
+        { days: 7 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2644,19 +2753,19 @@ describe("comment actions", () => {
       });
       mockPrismaTransaction.mockRejectedValue(new Error("TX error"));
       const result = await likeComment(
-        { commentId: 1, access_token: "token" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("unlikeComment 事务失败返回错误", async () => {
       mockPrismaTransaction.mockRejectedValue(new Error("TX error"));
       const result = await unlikeComment(
-        { commentId: 1, access_token: "token" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2669,10 +2778,10 @@ describe("comment actions", () => {
       });
       mockPrismaCommentUpdate.mockRejectedValue(new Error("DB error"));
       const result = await deleteOwnComment(
-        { commentId: 1, access_token: "token" },
+        { commentId: "00000000-0000-0000-0000-000000000001" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 });

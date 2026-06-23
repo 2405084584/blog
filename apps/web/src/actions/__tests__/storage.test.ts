@@ -100,8 +100,8 @@ vi.mock("next/server", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
 import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
 import { validateData } from "@/lib/server/validator";
 import { isVirtualStorage } from "@/lib/server/virtual-storage";
 
@@ -286,6 +286,7 @@ describe("storage actions", () => {
         isActive: true,
         isDefault: false,
         maxFileSize: 10485760,
+        pathTemplate: "/{year}/{month}/{filename}",
         config: {},
       });
 
@@ -397,7 +398,7 @@ describe("storage actions", () => {
       vi.mocked(prisma.storageProvider.findUnique).mockResolvedValue(
         mockStorageProvider({ isDefault: false }) as never,
       );
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = {
           storageProvider: {
             updateMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -516,7 +517,13 @@ describe("storage actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false as never);
       const { getStorageList } = await import("@/actions/storage");
-      const result = await getStorageList({ access_token: "valid-token" });
+      const result = await getStorageList({
+        access_token: "valid-token",
+        page: 1,
+        pageSize: 10,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 429 }),
       );
@@ -528,7 +535,13 @@ describe("storage actions", () => {
         new Error("DB error"),
       );
       const { getStorageList } = await import("@/actions/storage");
-      const result = await getStorageList({ access_token: "valid-token" });
+      const result = await getStorageList({
+        access_token: "valid-token",
+        page: 1,
+        pageSize: 10,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result).toEqual(expect.objectContaining({ success: false }));
     });
   });
@@ -583,6 +596,11 @@ describe("storage actions", () => {
         name: "New",
         type: "LOCAL",
         displayName: "New",
+        baseUrl: "/uploads",
+        isActive: true,
+        isDefault: false,
+        maxFileSize: 10485760,
+        pathTemplate: "/{year}/{month}/{filename}",
       });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 429 }),
@@ -599,6 +617,11 @@ describe("storage actions", () => {
         name: "New",
         type: "LOCAL",
         displayName: "New",
+        baseUrl: "/uploads",
+        isActive: true,
+        isDefault: false,
+        maxFileSize: 10485760,
+        pathTemplate: "/{year}/{month}/{filename}",
       });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 401 }),
@@ -616,6 +639,11 @@ describe("storage actions", () => {
         name: "New",
         type: "LOCAL",
         displayName: "New",
+        baseUrl: "/uploads",
+        isActive: true,
+        isDefault: false,
+        maxFileSize: 10485760,
+        pathTemplate: "/{year}/{month}/{filename}",
       });
       expect(result).toEqual(expect.objectContaining({ success: false }));
     });
@@ -627,7 +655,7 @@ describe("storage actions", () => {
       const { deleteStorage } = await import("@/actions/storage");
       const result = await deleteStorage({
         access_token: "valid-token",
-        id: "s1",
+        ids: ["s1"],
       });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 429 }),
@@ -639,7 +667,10 @@ describe("storage actions", () => {
       mockValidateData.mockReturnValue(null as never);
       mockAuthVerify.mockResolvedValue(null as never);
       const { deleteStorage } = await import("@/actions/storage");
-      const result = await deleteStorage({ access_token: "invalid", id: "s1" });
+      const result = await deleteStorage({
+        access_token: "invalid",
+        ids: ["s1"],
+      });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 401 }),
       );
@@ -653,7 +684,7 @@ describe("storage actions", () => {
       const { deleteStorage } = await import("@/actions/storage");
       const result = await deleteStorage({
         access_token: "valid-token",
-        id: "s1",
+        ids: ["s1"],
       });
       expect(result).toEqual(expect.objectContaining({ success: false }));
     });
@@ -666,6 +697,7 @@ describe("storage actions", () => {
       const result = await toggleStorageStatus({
         access_token: "valid-token",
         id: "s1",
+        isActive: true,
       });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 429 }),
@@ -680,6 +712,7 @@ describe("storage actions", () => {
       const result = await toggleStorageStatus({
         access_token: "invalid",
         id: "s1",
+        isActive: true,
       });
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 401 }),
@@ -695,6 +728,7 @@ describe("storage actions", () => {
       const result = await toggleStorageStatus({
         access_token: "valid-token",
         id: "s1",
+        isActive: true,
       });
       expect(result).toEqual(expect.objectContaining({ success: false }));
     });

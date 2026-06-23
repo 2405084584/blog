@@ -17,27 +17,27 @@ vi.mock("@/lib/server/post-access", () => ({
   LISTABLE_POST_PUBLISHED_WHERE: { status: "PUBLISHED" },
 }));
 
-import prisma from "@/lib/server/prisma";
+import type { SystemPageConfig } from "@/lib/server/page-cache";
 import {
+  createPageConfigBuilder,
+  getAllActivePages,
   getBlocksAreas,
-  getSystemPageConfig,
+  getMainRouteStaticParams,
+  getMainRouteTopLevelStaticParams,
+  getMatchingPage,
   getPageBlock,
   getPageBlockValue,
   getPageComponent,
   getPageComponentValue,
-  createPageConfigBuilder,
+  getPagesByStatus,
+  getPagesByUser,
   getRawPage,
   getRawPageById,
-  getMatchingPage,
-  getAllActivePages,
-  getPagesByStatus,
+  getSystemPageConfig,
   getSystemPages,
-  getPagesByUser,
-  getMainRouteStaticParams,
-  getMainRouteTopLevelStaticParams,
   PageConfigBuilder,
 } from "@/lib/server/page-cache";
-import type { PageItem, SystemPageConfig } from "@/lib/server/page-cache";
+import prisma from "@/lib/server/prisma";
 
 const mockPrisma = vi.mocked(prisma);
 
@@ -376,7 +376,7 @@ describe("page-cache expanded", () => {
 
   describe("getRawPage", () => {
     it("从数据库返回页面", async () => {
-      mockPrisma.page.findUnique.mockResolvedValue(
+      (mockPrisma.page.findUnique as any).mockResolvedValue(
         createMockDbPage({
           id: "page-1",
           slug: "/test-page",
@@ -390,13 +390,15 @@ describe("page-cache expanded", () => {
     });
 
     it("页面不存在时返回 null", async () => {
-      mockPrisma.page.findUnique.mockResolvedValue(null);
+      (mockPrisma.page.findUnique as any).mockResolvedValue(null);
       const result = await getRawPage("/nonexistent");
       expect(result).toBeNull();
     });
 
     it("数据库查询失败时返回 null", async () => {
-      mockPrisma.page.findUnique.mockRejectedValue(new Error("DB error"));
+      (mockPrisma.page.findUnique as any).mockRejectedValue(
+        new Error("DB error"),
+      );
       const result = await getRawPage("/error-page");
       expect(result).toBeNull();
     });
@@ -404,7 +406,7 @@ describe("page-cache expanded", () => {
 
   describe("getRawPageById", () => {
     it("按 id 从数据库返回页面", async () => {
-      mockPrisma.page.findUnique.mockResolvedValue(
+      (mockPrisma.page.findUnique as any).mockResolvedValue(
         createMockDbPage({ id: "specific-id", title: "Found By ID" }),
       );
       const result = await getRawPageById("specific-id");
@@ -413,7 +415,7 @@ describe("page-cache expanded", () => {
     });
 
     it("未找到时返回 null", async () => {
-      mockPrisma.page.findUnique.mockResolvedValue(null);
+      (mockPrisma.page.findUnique as any).mockResolvedValue(null);
       const result = await getRawPageById("nonexistent-id");
       expect(result).toBeNull();
     });
@@ -421,7 +423,7 @@ describe("page-cache expanded", () => {
 
   describe("getMatchingPage", () => {
     it("精确匹配路径", async () => {
-      mockPrisma.page.findUnique.mockResolvedValue(
+      (mockPrisma.page.findUnique as any).mockResolvedValue(
         createMockDbPage({
           id: "exact-page",
           slug: "/about",
@@ -436,23 +438,25 @@ describe("page-cache expanded", () => {
     });
 
     it("无匹配时返回 null", async () => {
-      mockPrisma.page.findUnique.mockResolvedValue(null);
+      (mockPrisma.page.findUnique as any).mockResolvedValue(null);
       const result = await getMatchingPage(["nonexistent"]);
       expect(result).toBeNull();
     });
 
     it("处理空 slug（根路径）", async () => {
-      mockPrisma.page.findUnique.mockImplementation(async (args: any) => {
-        if (args?.where?.slug === "/")
-          return createMockDbPage({
-            id: "home",
-            slug: "/",
-            title: "Home",
-            status: "ACTIVE",
-            deletedAt: null,
-          });
-        return null;
-      });
+      (mockPrisma.page.findUnique as any).mockImplementation(
+        async (args: any) => {
+          if (args?.where?.slug === "/")
+            return createMockDbPage({
+              id: "home",
+              slug: "/",
+              title: "Home",
+              status: "ACTIVE",
+              deletedAt: null,
+            });
+          return null;
+        },
+      );
       const result = await getMatchingPage([]);
       expect(result).not.toBeNull();
       expect(result?.page.slug).toBe("/");
@@ -461,7 +465,7 @@ describe("page-cache expanded", () => {
 
   describe("getAllActivePages", () => {
     it("返回活跃页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/active",
@@ -481,7 +485,7 @@ describe("page-cache expanded", () => {
     });
 
     it("排除已删除页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/active",
@@ -501,7 +505,9 @@ describe("page-cache expanded", () => {
     });
 
     it("数据库失败时返回空对象", async () => {
-      mockPrisma.page.findMany.mockRejectedValue(new Error("DB error"));
+      (mockPrisma.page.findMany as any).mockRejectedValue(
+        new Error("DB error"),
+      );
       const result = await getAllActivePages();
       expect(result).toEqual({});
     });
@@ -509,7 +515,7 @@ describe("page-cache expanded", () => {
 
   describe("getPagesByStatus", () => {
     it("只返回指定状态的页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/a",
@@ -536,7 +542,7 @@ describe("page-cache expanded", () => {
     });
 
     it("排除已删除页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/a",
@@ -557,7 +563,7 @@ describe("page-cache expanded", () => {
 
   describe("getSystemPages", () => {
     it("只返回系统页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/sys",
@@ -579,7 +585,7 @@ describe("page-cache expanded", () => {
     });
 
     it("排除暂停的系统页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/sys-active",
@@ -603,7 +609,7 @@ describe("page-cache expanded", () => {
 
   describe("getPagesByUser", () => {
     it("返回指定用户的页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/user1-page",
@@ -636,7 +642,7 @@ describe("page-cache expanded", () => {
     });
 
     it("排除系统页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/user-page",
@@ -660,7 +666,7 @@ describe("page-cache expanded", () => {
     });
 
     it("排除已删除页面", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({
           id: "1",
           slug: "/active",
@@ -685,13 +691,13 @@ describe("page-cache expanded", () => {
 
   describe("getMainRouteStaticParams", () => {
     it("无页面时返回根 slug", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([]);
+      (mockPrisma.page.findMany as any).mockResolvedValue([]);
       const result = await getMainRouteStaticParams();
       expect(result).toEqual([{ slug: [] }]);
     });
 
     it("返回简单页面的静态参数", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({ id: "1", slug: "/about", config: null }),
       ]);
       const result = await getMainRouteStaticParams();
@@ -700,7 +706,7 @@ describe("page-cache expanded", () => {
     });
 
     it("处理根路径", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({ id: "1", slug: "/", config: null }),
       ]);
       const result = await getMainRouteStaticParams();
@@ -710,13 +716,13 @@ describe("page-cache expanded", () => {
 
   describe("getMainRouteTopLevelStaticParams", () => {
     it("无页面时返回根 slug", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([]);
+      (mockPrisma.page.findMany as any).mockResolvedValue([]);
       const result = await getMainRouteTopLevelStaticParams();
       expect(result).toEqual([{ slug: [] }]);
     });
 
     it("包含顶级页面路径", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({ id: "1", slug: "/about" }),
         createMockDbPage({ id: "2", slug: "/blog" }),
       ]);
@@ -727,7 +733,7 @@ describe("page-cache expanded", () => {
     });
 
     it("排除深层嵌套路径", async () => {
-      mockPrisma.page.findMany.mockResolvedValue([
+      (mockPrisma.page.findMany as any).mockResolvedValue([
         createMockDbPage({ id: "1", slug: "/a/b/c" }),
       ]);
       const result = await getMainRouteTopLevelStaticParams();

@@ -111,7 +111,7 @@ describe("useMessagePolling", () => {
 
     // 第一个 SWR 调用的 key 应该是 "conversations"
     const firstCall = vi.mocked(useSWR).mock.calls[0];
-    expect(firstCall[0]).toBe("conversations");
+    expect(firstCall![0]).toBe("conversations");
   });
 
   it("有 currentConversationId 时启用消息轮询", async () => {
@@ -128,7 +128,7 @@ describe("useMessagePolling", () => {
 
     // 第二个 SWR 调用的 key 应该是 ["conversation-messages", "conv-123"]
     const secondCall = vi.mocked(useSWR).mock.calls[1];
-    expect(secondCall[0]).toEqual(["conversation-messages", "conv-123"]);
+    expect(secondCall![0]).toEqual(["conversation-messages", "conv-123"]);
   });
 
   it("没有 currentConversationId 时不启用消息轮询", async () => {
@@ -144,7 +144,7 @@ describe("useMessagePolling", () => {
 
     // 第二个 SWR 调用的 key 应该是 null
     const secondCall = vi.mocked(useSWR).mock.calls[1];
-    expect(secondCall[0]).toBeNull();
+    expect(secondCall![0]).toBeNull();
   });
 
   it("SWR 配置包含正确的轮询间隔", async () => {
@@ -159,7 +159,7 @@ describe("useMessagePolling", () => {
     );
 
     const firstCall = vi.mocked(useSWR).mock.calls[0];
-    const config = firstCall[2];
+    const config = firstCall![2];
     expect(config).toMatchObject({
       refreshInterval: 3000,
       dedupingInterval: 1000,
@@ -181,6 +181,6 @@ describe("useMessagePolling", () => {
 
     // 默认 connectionStatus 为 "fallback"，所以应该启用轮询
     const firstCall = vi.mocked(useSWR).mock.calls[0];
-    expect(firstCall[0]).toBe("conversations");
+    expect(firstCall![0]).toBe("conversations");
   });
 });

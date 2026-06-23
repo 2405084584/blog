@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { parseRedisConnectionOptions } from "@/lib/shared/redis-url";
 
 describe("redis-url", () => {

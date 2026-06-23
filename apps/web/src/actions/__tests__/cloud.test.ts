@@ -89,7 +89,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   return {
     ...actual,
     default: {
-      ...actual.default,
+      ...(actual as any).default,
       readFile: vi.fn(async () => JSON.stringify({ version: "5.0.0" })),
     },
     readFile: vi.fn(async () => JSON.stringify({ version: "5.0.0" })),
@@ -119,10 +119,10 @@ vi.mock("@/lib/shared/cloud-signature", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
-import prisma from "@/lib/server/prisma";
-import { validateData } from "@/lib/server/validator";
 import { getConfigs } from "@/lib/server/config-cache";
+import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
+import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
 const mockValidateData = vi.mocked(validateData);
@@ -138,7 +138,7 @@ function setupSuccessMocks() {
 }
 
 function setupCloudConfig(enabled = true) {
-  mockGetConfigs.mockImplementation(async (keys: string[]) => {
+  (mockGetConfigs as any).mockImplementation(async (keys: string[]) => {
     const map: Record<string, unknown> = {
       "cloud.enable": enabled,
       "cloud.id": "test-site-id",
@@ -214,7 +214,7 @@ describe("cloud actions", () => {
     it("更新云端配置 - 成功路径", async () => {
       setupSuccessMocks();
       setupCloudConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = {
           config: { upsert: vi.fn().mockResolvedValue({}) },
         };
@@ -424,7 +424,7 @@ describe("cloud actions", () => {
       const { updateCloudConfig } = await import("@/actions/cloud");
       const result = await updateCloudConfig({
         access_token: "valid-token",
-        configs: [{ key: "test.key", value: { default: "value" } }],
+        enabled: true,
       });
 
       expect(result).toEqual(
@@ -507,7 +507,7 @@ describe("cloud actions", () => {
       const { updateCloudConfig } = await import("@/actions/cloud");
       const result = await updateCloudConfig({
         access_token: "invalid-token",
-        configs: [{ key: "test.key", value: { default: "value" } }],
+        enabled: true,
       });
 
       expect(result).toEqual(expect.objectContaining({ success: false }));
@@ -572,7 +572,7 @@ describe("cloud actions", () => {
       const { updateCloudConfig } = await import("@/actions/cloud");
       const result = await updateCloudConfig({
         access_token: "valid-token",
-        configs: [{ key: "test.key", value: { default: "value" } }],
+        enabled: true,
       });
 
       expect(result).toEqual(expect.objectContaining({ success: false }));
@@ -719,7 +719,7 @@ describe("cloud actions", () => {
       });
 
       const whereArg = vi.mocked(prisma.cloudTriggerHistory.count).mock
-        .calls[0]?.[0] as Record<string, unknown>;
+        .calls[0]?.[0] as Record<string, any>;
       expect(whereArg?.where?.verifySource).toBeNull();
     });
 
@@ -737,7 +737,7 @@ describe("cloud actions", () => {
       });
 
       const whereArg = vi.mocked(prisma.cloudTriggerHistory.count).mock
-        .calls[0]?.[0] as Record<string, unknown>;
+        .calls[0]?.[0] as Record<string, any>;
       expect(whereArg?.where?.verifySource).toBe("DOH");
     });
 
@@ -756,7 +756,7 @@ describe("cloud actions", () => {
       });
 
       const whereArg = vi.mocked(prisma.cloudTriggerHistory.count).mock
-        .calls[0]?.[0] as Record<string, unknown>;
+        .calls[0]?.[0] as Record<string, any>;
       expect(whereArg?.where?.createdAt).toBeDefined();
       expect(whereArg?.where?.createdAt?.gte).toBeInstanceOf(Date);
       expect(whereArg?.where?.createdAt?.lte).toBeInstanceOf(Date);
@@ -777,7 +777,7 @@ describe("cloud actions", () => {
       });
 
       const whereArg = vi.mocked(prisma.cloudTriggerHistory.count).mock
-        .calls[0]?.[0] as Record<string, unknown>;
+        .calls[0]?.[0] as Record<string, any>;
       expect(whereArg?.where?.accepted).toBe(true);
       expect(whereArg?.where?.dedupHit).toBe(false);
     });
@@ -983,7 +983,7 @@ describe("cloud actions", () => {
     it("更新 scheduleTime", async () => {
       setupSuccessMocks();
       setupCloudConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });
@@ -1000,7 +1000,7 @@ describe("cloud actions", () => {
     it("更新 cloudBaseUrl", async () => {
       setupSuccessMocks();
       setupCloudConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });
@@ -1017,7 +1017,7 @@ describe("cloud actions", () => {
     it("更新 dohDomain, jwksUrl, issuer, audience", async () => {
       setupSuccessMocks();
       setupCloudConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });
@@ -1037,7 +1037,7 @@ describe("cloud actions", () => {
     it("audit log 失败不影响结果", async () => {
       setupSuccessMocks();
       setupCloudConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });

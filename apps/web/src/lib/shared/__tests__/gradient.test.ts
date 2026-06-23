@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { generateGradient } from "@/lib/shared/gradient";
 
 describe("gradient", () => {

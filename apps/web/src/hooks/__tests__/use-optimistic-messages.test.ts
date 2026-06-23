@@ -1,8 +1,8 @@
+import type { Message } from "@repo/shared-types/api/message";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { useOptimisticMessages } from "@/hooks/use-optimistic-messages";
-import type { Message } from "@repo/shared-types/api/message";
 
 function createMessage(overrides: Partial<Message> = {}): Message {
   return {
@@ -29,10 +29,10 @@ describe("useOptimisticMessages", () => {
     const { result } = renderHook(() => useOptimisticMessages(initial));
 
     expect(result.current.messages).toHaveLength(2);
-    expect(result.current.messages[0].id).toBe("msg-1");
-    expect(result.current.messages[0].status).toBe("sent");
-    expect(result.current.messages[1].id).toBe("msg-2");
-    expect(result.current.messages[1].status).toBe("sent");
+    expect(result.current.messages[0]!.id).toBe("msg-1");
+    expect(result.current.messages[0]!.status).toBe("sent");
+    expect(result.current.messages[1]!.id).toBe("msg-2");
+    expect(result.current.messages[1]!.status).toBe("sent");
   });
 
   describe("addOptimisticMessage", () => {
@@ -45,10 +45,10 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe("hello");
-      expect(result.current.messages[0].senderUid).toBe(1);
-      expect(result.current.messages[0].status).toBe("sending");
-      expect(result.current.messages[0].tempId).toBe(tempId!);
+      expect(result.current.messages[0]!.content).toBe("hello");
+      expect(result.current.messages[0]!.senderUid).toBe(1);
+      expect(result.current.messages[0]!.status).toBe("sending");
+      expect(result.current.messages[0]!.tempId).toBe(tempId!);
     });
 
     it("每次生成唯一的 tempId", () => {
@@ -74,8 +74,8 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0].id).toBe("existing");
-      expect(result.current.messages[1].status).toBe("sending");
+      expect(result.current.messages[0]!.id).toBe("existing");
+      expect(result.current.messages[1]!.status).toBe("sending");
     });
   });
 
@@ -94,9 +94,9 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].id).toBe("real-msg");
-      expect(result.current.messages[0].status).toBe("sent");
-      expect(result.current.messages[0].tempId).toBeUndefined();
+      expect(result.current.messages[0]!.id).toBe("real-msg");
+      expect(result.current.messages[0]!.status).toBe("sent");
+      expect(result.current.messages[0]!.tempId).toBeUndefined();
     });
 
     it("支持自定义状态", () => {
@@ -112,7 +112,7 @@ describe("useOptimisticMessages", () => {
         result.current.updateMessageStatus(tempId!, realMessage, "read");
       });
 
-      expect(result.current.messages[0].status).toBe("read");
+      expect(result.current.messages[0]!.status).toBe("read");
     });
 
     it("不影响不匹配的消息", () => {
@@ -130,8 +130,8 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0].id).toBe("other-msg");
-      expect(result.current.messages[1].id).toBe("real-msg");
+      expect(result.current.messages[0]!.id).toBe("other-msg");
+      expect(result.current.messages[1]!.id).toBe("real-msg");
     });
   });
 
@@ -148,25 +148,24 @@ describe("useOptimisticMessages", () => {
         result.current.markMessageFailed(tempId!);
       });
 
-      expect(result.current.messages[0].status).toBe("failed");
+      expect(result.current.messages[0]!.status).toBe("failed");
     });
 
     it("不影响不匹配的消息", () => {
       const { result } = renderHook(() => useOptimisticMessages());
 
       let tempId1: string;
-      let tempId2: string;
       act(() => {
         tempId1 = result.current.addOptimisticMessage("msg1", 1);
-        tempId2 = result.current.addOptimisticMessage("msg2", 1);
+        result.current.addOptimisticMessage("msg2", 1);
       });
 
       act(() => {
         result.current.markMessageFailed(tempId1!);
       });
 
-      expect(result.current.messages[0].status).toBe("failed");
-      expect(result.current.messages[1].status).toBe("sending");
+      expect(result.current.messages[0]!.status).toBe("failed");
+      expect(result.current.messages[1]!.status).toBe("sending");
     });
   });
 
@@ -182,12 +181,12 @@ describe("useOptimisticMessages", () => {
       act(() => {
         result.current.markMessageFailed(tempId!);
       });
-      expect(result.current.messages[0].status).toBe("failed");
+      expect(result.current.messages[0]!.status).toBe("failed");
 
       act(() => {
         result.current.retryMessage(tempId!);
       });
-      expect(result.current.messages[0].status).toBe("sending");
+      expect(result.current.messages[0]!.status).toBe("sending");
     });
   });
 
@@ -222,7 +221,7 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].tempId).toBe(tempId2!);
+      expect(result.current.messages[0]!.tempId).toBe(tempId2!);
     });
   });
 
@@ -240,8 +239,8 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0].id).toBe("new-1");
-      expect(result.current.messages[0].status).toBe("sent");
+      expect(result.current.messages[0]!.id).toBe("new-1");
+      expect(result.current.messages[0]!.status).toBe("sent");
     });
 
     it("不添加重复 ID 的消息", () => {
@@ -257,8 +256,8 @@ describe("useOptimisticMessages", () => {
 
       expect(result.current.messages).toHaveLength(2);
       // 新消息在前，旧消息在后
-      expect(result.current.messages[0].id).toBe("new-msg");
-      expect(result.current.messages[1].id).toBe("existing-msg");
+      expect(result.current.messages[0]!.id).toBe("new-msg");
+      expect(result.current.messages[1]!.id).toBe("existing-msg");
     });
 
     it("新消息在前，已有的乐观消息在后", () => {
@@ -273,8 +272,8 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0].id).toBe("history-msg");
-      expect(result.current.messages[1].status).toBe("sending");
+      expect(result.current.messages[0]!.id).toBe("history-msg");
+      expect(result.current.messages[1]!.status).toBe("sending");
     });
   });
 
@@ -301,10 +300,10 @@ describe("useOptimisticMessages", () => {
         result.current.updateReadStatus("msg-2");
       });
 
-      expect(result.current.messages[0].status).toBe("read");
-      expect(result.current.messages[1].status).toBe("read");
+      expect(result.current.messages[0]!.status).toBe("read");
+      expect(result.current.messages[1]!.status).toBe("read");
       // msg3 的时间 > msg2 的时间，不标记
-      expect(result.current.messages[2].status).toBe("sent");
+      expect(result.current.messages[2]!.status).toBe("sent");
     });
 
     it("null lastReadMessageId 不做任何操作", () => {
@@ -315,7 +314,7 @@ describe("useOptimisticMessages", () => {
         result.current.updateReadStatus(null);
       });
 
-      expect(result.current.messages[0].status).toBe("sent");
+      expect(result.current.messages[0]!.status).toBe("sent");
     });
 
     it("不存在的 lastReadMessageId 不做任何操作", () => {
@@ -326,23 +325,22 @@ describe("useOptimisticMessages", () => {
         result.current.updateReadStatus("nonexistent-id");
       });
 
-      expect(result.current.messages[0].status).toBe("sent");
+      expect(result.current.messages[0]!.status).toBe("sent");
     });
 
     it("只标记 sent 状态的消息为 read，不改变其他状态", () => {
       const { result } = renderHook(() => useOptimisticMessages());
 
-      let tempId: string;
       act(() => {
-        tempId = result.current.addOptimisticMessage("sending msg", 1);
+        result.current.addOptimisticMessage("sending msg", 1);
       });
 
       // 消息处于 sending 状态，不应被标记为 read
       act(() => {
-        result.current.updateReadStatus(result.current.messages[0].id);
+        result.current.updateReadStatus(result.current.messages[0]!.id);
       });
 
-      expect(result.current.messages[0].status).toBe("sending");
+      expect(result.current.messages[0]!.status).toBe("sending");
     });
   });
 
@@ -371,8 +369,8 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0].id).toBe("new-1");
-      expect(result.current.messages[0].status).toBe("sent");
+      expect(result.current.messages[0]!.id).toBe("new-1");
+      expect(result.current.messages[0]!.status).toBe("sent");
     });
   });
 
@@ -386,8 +384,8 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0].id).toBe("existing");
-      expect(result.current.messages[1].id).toBe("appended");
+      expect(result.current.messages[0]!.id).toBe("existing");
+      expect(result.current.messages[1]!.id).toBe("appended");
     });
 
     it("不追加重复 ID 的消息", () => {
@@ -399,7 +397,7 @@ describe("useOptimisticMessages", () => {
       });
 
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[1].id).toBe("new");
+      expect(result.current.messages[1]!.id).toBe("new");
     });
 
     it("提供 lastReadMessageId 时标记新追加的消息为已读", () => {
@@ -419,9 +417,9 @@ describe("useOptimisticMessages", () => {
       });
 
       // 已有的消息保持原状态（appendMessages 只更新新消息的状态）
-      expect(result.current.messages[0].status).toBe("sent");
+      expect(result.current.messages[0]!.status).toBe("sent");
       // 新消息的 createdAt <= lastReadMessageId 的 createdAt，标记为 read
-      expect(result.current.messages[1].status).toBe("read");
+      expect(result.current.messages[1]!.status).toBe("read");
     });
 
     it("提供 lastReadMessageId 时，时间晚于已读消息的新消息保持 sent 状态", () => {
@@ -445,9 +443,9 @@ describe("useOptimisticMessages", () => {
       });
 
       // olderMsg 的时间 <= lastReadTime，标记为 read
-      expect(result.current.messages[1].status).toBe("read");
+      expect(result.current.messages[1]!.status).toBe("read");
       // newerMsg 的时间 > lastReadTime，保持 sent
-      expect(result.current.messages[2].status).toBe("sent");
+      expect(result.current.messages[2]!.status).toBe("sent");
     });
 
     it("不提供 lastReadMessageId 时消息状态为 sent", () => {
@@ -460,8 +458,8 @@ describe("useOptimisticMessages", () => {
         ]);
       });
 
-      expect(result.current.messages[0].status).toBe("sent");
-      expect(result.current.messages[1].status).toBe("sent");
+      expect(result.current.messages[0]!.status).toBe("sent");
+      expect(result.current.messages[1]!.status).toBe("sent");
     });
   });
 });

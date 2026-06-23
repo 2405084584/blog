@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createArray } from "../create-array";
+import { createArray } from "@/lib/client/create-array";
 
 describe("createArray", () => {
   it("应创建从 from 到 to 的连续数组", () => {

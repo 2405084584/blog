@@ -67,12 +67,12 @@ vi.mock("@/lib/server/page-image-tracking", () => ({
 // ============================================================================
 
 import {
-  getPagesList,
-  getPageDetail,
   createPage,
+  deletePages,
+  getPageDetail,
+  getPagesList,
   updatePage,
   updatePages,
-  deletePages,
 } from "@/actions/page";
 
 // ============================================================================
@@ -306,7 +306,7 @@ describe("page actions", () => {
         isSystemPage: true,
       });
       const result = await updatePage(
-        { access_token: "token", slug: "/about", isSystemPage: false },
+        { access_token: "token", slug: "/about" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -380,7 +380,13 @@ describe("page actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPagesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "id",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -391,7 +397,7 @@ describe("page actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getPageDetail(
-        { access_token: "token", id: "page-1" },
+        { access_token: "token", slug: "/page-1" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -400,7 +406,7 @@ describe("page actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getPageDetail(
-        { access_token: "token", id: "page-1" },
+        { access_token: "token", slug: "/page-1" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -411,7 +417,15 @@ describe("page actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createPage(
-        { access_token: "token", title: "New Page", slug: "new" },
+        {
+          access_token: "token",
+          title: "New Page",
+          slug: "new",
+          contentType: "MARKDOWN",
+          status: "ACTIVE",
+          robotsIndex: true,
+          isSystemPage: false,
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -420,7 +434,15 @@ describe("page actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await createPage(
-        { access_token: "token", title: "New Page", slug: "new" },
+        {
+          access_token: "token",
+          title: "New Page",
+          slug: "new",
+          contentType: "MARKDOWN",
+          status: "ACTIVE",
+          robotsIndex: true,
+          isSystemPage: false,
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -431,7 +453,7 @@ describe("page actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updatePage(
-        { access_token: "token", id: "page-1", title: "Updated" },
+        { access_token: "token", slug: "/page-1", title: "Updated" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -440,7 +462,7 @@ describe("page actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await updatePage(
-        { access_token: "token", id: "page-1", title: "Updated" },
+        { access_token: "token", slug: "/page-1", title: "Updated" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -495,7 +517,14 @@ describe("page actions", () => {
       mockPrismaPageFindMany.mockResolvedValue([]);
       mockPrismaPageCount.mockResolvedValue(0);
       const result = await getPagesList(
-        { access_token: "token", search: "test" },
+        {
+          access_token: "token",
+          search: "test",
+          page: 1,
+          pageSize: 10,
+          sortBy: "id",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -505,7 +534,13 @@ describe("page actions", () => {
       mockAuthSuccess();
       mockPrismaPageFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getPagesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "id",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -517,7 +552,15 @@ describe("page actions", () => {
       mockAuthSuccess();
       mockPrismaPageFindFirst.mockRejectedValue(new Error("DB error"));
       const result = await createPage(
-        { access_token: "token", title: "New Page", slug: "new-page" },
+        {
+          access_token: "token",
+          title: "New Page",
+          slug: "new-page",
+          contentType: "MARKDOWN",
+          status: "ACTIVE",
+          robotsIndex: true,
+          isSystemPage: false,
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -529,7 +572,7 @@ describe("page actions", () => {
       mockAuthSuccess();
       mockPrismaPageFindUnique.mockRejectedValue(new Error("DB error"));
       const result = await updatePage(
-        { access_token: "token", id: "page-1", title: "Updated" },
+        { access_token: "token", slug: "/page-1", title: "Updated" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);

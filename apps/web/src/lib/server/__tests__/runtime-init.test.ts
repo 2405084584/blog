@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("rlog-js", () => {
-  function RLog() {
+  function RLog(this: any) {
     this.info = () => {};
     this.success = () => {};
     this.error = () => {};

@@ -148,20 +148,20 @@ vi.mock("next/server", () => ({
 // ============================================================================
 
 import {
-  getGalleryPhotos,
-  getMediaList,
-  getMediaDetail,
-  updateMedia,
   batchUpdateMedia,
-  deleteMedia,
-  getMediaStats,
-  getMediaTrends,
-  getAccessibleFolders,
-  getFolderBreadcrumb,
-  getMediaExplorerPage,
   createFolder,
   deleteFolders,
+  deleteMedia,
+  getAccessibleFolders,
+  getFolderBreadcrumb,
+  getGalleryPhotos,
+  getMediaDetail,
+  getMediaExplorerPage,
+  getMediaList,
+  getMediaStats,
+  getMediaTrends,
   moveItems,
+  updateMedia,
 } from "@/actions/media";
 
 // ============================================================================
@@ -259,7 +259,7 @@ const USER_HOME_FOLDER = {
   updatedAt: new Date("2025-01-01"),
 };
 
-function mockAuthSuccess(user = ADMIN_USER) {
+function mockAuthSuccess(user: any = ADMIN_USER) {
   mockAuthVerify.mockResolvedValue(user);
 }
 function mockAuthFailure() {
@@ -301,7 +301,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("应传递 cursorId 参数", async () => {
@@ -321,7 +321,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -334,19 +334,31 @@ describe("media actions", () => {
         mockPrismaMediaFindMany.mockResolvedValue([MEDIA_RECORD]);
         mockPrismaMediaCount.mockResolvedValue(1);
         const result = await getMediaList(
-          { access_token: "token" },
+          {
+            access_token: "token",
+            page: 1,
+            pageSize: 25,
+            sortBy: "createdAt" as const,
+            sortOrder: "desc" as const,
+          },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
         mockAuthFailure();
         const result = await getMediaList(
-          { access_token: "token" },
+          {
+            access_token: "token",
+            page: 1,
+            pageSize: 25,
+            sortBy: "createdAt" as const,
+            sortOrder: "desc" as const,
+          },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
 
       it("所有角色都可访问", async () => {
@@ -355,10 +367,16 @@ describe("media actions", () => {
           mockPrismaMediaFindMany.mockResolvedValue([]);
           mockPrismaMediaCount.mockResolvedValue(0);
           const result = await getMediaList(
-            { access_token: "token" },
+            {
+              access_token: "token",
+              page: 1,
+              pageSize: 25,
+              sortBy: "createdAt" as const,
+              sortOrder: "desc" as const,
+            },
             { environment: "serveraction" },
           );
-          expect(result.success).toBe(true);
+          expect((result as any).success).toBe(true);
         }
       });
     });
@@ -370,12 +388,18 @@ describe("media actions", () => {
         mockPrismaMediaCount.mockResolvedValue(1);
 
         const result = await getMediaList(
-          { access_token: "token", page: 1, pageSize: 25 },
+          {
+            access_token: "token",
+            page: 1,
+            pageSize: 25,
+            sortBy: "createdAt" as const,
+            sortOrder: "desc" as const,
+          },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
-        expect(result.meta).toBeDefined();
+        expect((result as any).success).toBe(true);
+        expect((result as any).meta).toBeDefined();
       });
     });
 
@@ -386,15 +410,21 @@ describe("media actions", () => {
         mockPrismaMediaCount.mockResolvedValue(1);
 
         const result = await getMediaList(
-          { access_token: "token" },
+          {
+            access_token: "token",
+            page: 1,
+            pageSize: 25,
+            sortBy: "createdAt" as const,
+            sortOrder: "desc" as const,
+          },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
-        expect(result.data).toHaveLength(1);
-        expect(result.data[0]).toHaveProperty("id");
-        expect(result.data[0]).toHaveProperty("fileName");
-        expect(result.data[0]).toHaveProperty("originalName");
+        expect((result as any).success).toBe(true);
+        expect((result as any).data).toHaveLength(1);
+        expect((result as any).data[0]).toHaveProperty("id");
+        expect((result as any).data[0]).toHaveProperty("fileName");
+        expect((result as any).data[0]).toHaveProperty("originalName");
       });
 
       it("应生成签名 imageId", async () => {
@@ -403,7 +433,13 @@ describe("media actions", () => {
         mockPrismaMediaCount.mockResolvedValue(1);
 
         await getMediaList(
-          { access_token: "token" },
+          {
+            access_token: "token",
+            page: 1,
+            pageSize: 25,
+            sortBy: "createdAt" as const,
+            sortOrder: "desc" as const,
+          },
           { environment: "serveraction" },
         );
 
@@ -415,10 +451,16 @@ describe("media actions", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
         const result = await getMediaList(
-          { access_token: "token" },
+          {
+            access_token: "token",
+            page: 1,
+            pageSize: 25,
+            sortBy: "createdAt" as const,
+            sortOrder: "desc" as const,
+          },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -438,7 +480,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
@@ -447,7 +489,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -459,7 +501,7 @@ describe("media actions", () => {
           { access_token: "token", id: 999 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -476,7 +518,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
 
       it("AUTHOR 可以访问自己的文件", async () => {
@@ -491,7 +533,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("ADMIN 可以访问任何文件", async () => {
@@ -506,7 +548,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
     });
 
@@ -517,7 +559,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -546,7 +588,7 @@ describe("media actions", () => {
           },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
@@ -555,7 +597,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1, originalName: "renamed.jpg" },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -571,7 +613,7 @@ describe("media actions", () => {
           },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -591,7 +633,7 @@ describe("media actions", () => {
           },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -602,7 +644,7 @@ describe("media actions", () => {
           { access_token: "token", id: 1, originalName: "renamed.jpg" },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -622,7 +664,7 @@ describe("media actions", () => {
             galleryPhoto: null,
           },
         ]);
-        mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+        mockPrismaTransaction.mockImplementation(async (fn: any) =>
           fn({
             media: { updateMany: vi.fn() },
             photo: { createMany: vi.fn(), deleteMany: vi.fn() },
@@ -637,7 +679,7 @@ describe("media actions", () => {
           },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
@@ -646,7 +688,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [1] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -658,7 +700,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [999] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -669,7 +711,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [1] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -700,7 +742,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [1] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
@@ -709,7 +751,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [1] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -737,7 +779,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [1] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
     });
 
@@ -804,7 +846,7 @@ describe("media actions", () => {
           { access_token: "token", ids: [1] },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -827,19 +869,19 @@ describe("media actions", () => {
           },
         ]);
         const result = await getMediaStats(
-          { access_token: "token" },
+          { access_token: "token", days: 30, force: false },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
         mockAuthFailure();
         const result = await getMediaStats(
-          { access_token: "token" },
+          { access_token: "token", days: 30, force: false },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -854,12 +896,12 @@ describe("media actions", () => {
         });
 
         const result = await getMediaStats(
-          { access_token: "token" },
+          { access_token: "token", days: 30, force: false },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
+        expect((result as any).success).toBe(true);
+        expect((result as any).data).toBeDefined();
       });
 
       it("无缓存时应查询数据库", async () => {
@@ -872,7 +914,7 @@ describe("media actions", () => {
         mockPrismaMediaGroupBy.mockResolvedValue([]);
 
         await getMediaStats(
-          { access_token: "token" },
+          { access_token: "token", days: 30, force: false },
           { environment: "serveraction" },
         );
 
@@ -884,10 +926,10 @@ describe("media actions", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
         const result = await getMediaStats(
-          { access_token: "token" },
+          { access_token: "token", days: 30, force: false },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -899,19 +941,19 @@ describe("media actions", () => {
       it("成功获取媒体趋势", async () => {
         mockAuthSuccess(ADMIN_USER);
         const result = await getMediaTrends(
-          { access_token: "token" },
+          { access_token: "token", days: 30, count: 30 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
         mockAuthFailure();
         const result = await getMediaTrends(
-          { access_token: "token" },
+          { access_token: "token", days: 30, count: 30 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -919,10 +961,10 @@ describe("media actions", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
         const result = await getMediaTrends(
-          { access_token: "token" },
+          { access_token: "token", days: 30, count: 30 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -946,19 +988,19 @@ describe("media actions", () => {
         ]);
 
         const result = await getAccessibleFolders(
-          { access_token: "token" },
+          { access_token: "token", userRole: "ADMIN", userUid: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
         mockAuthFailure();
         const result = await getAccessibleFolders(
-          { access_token: "token" },
+          { access_token: "token", userRole: "ADMIN", userUid: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
 
       it("所有角色都可访问", async () => {
@@ -975,10 +1017,10 @@ describe("media actions", () => {
           (prisma.$queryRaw as any).mockResolvedValue([]);
 
           const result = await getAccessibleFolders(
-            { access_token: "token" },
+            { access_token: "token", userRole: "ADMIN", userUid: 1 },
             { environment: "serveraction" },
           );
-          expect(result.success).toBe(true);
+          expect((result as any).success).toBe(true);
         }
       });
     });
@@ -996,12 +1038,12 @@ describe("media actions", () => {
         (prisma.$queryRaw as any).mockResolvedValue([]);
 
         const result = await getAccessibleFolders(
-          { access_token: "token" },
+          { access_token: "token", userRole: "ADMIN", userUid: 1 },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
+        expect((result as any).success).toBe(true);
+        expect((result as any).data).toBeDefined();
       });
 
       it("ADMIN/EDITOR 应能看到 ROOT_USERS", async () => {
@@ -1016,11 +1058,11 @@ describe("media actions", () => {
         (prisma.$queryRaw as any).mockResolvedValue([]);
 
         const result = await getAccessibleFolders(
-          { access_token: "token" },
+          { access_token: "token", userRole: "ADMIN", userUid: 1 },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("AUTHOR 不应看到 ROOT_USERS", async () => {
@@ -1034,11 +1076,11 @@ describe("media actions", () => {
         (prisma.$queryRaw as any).mockResolvedValue([]);
 
         const result = await getAccessibleFolders(
-          { access_token: "token" },
+          { access_token: "token", userRole: "ADMIN", userUid: 1 },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
     });
 
@@ -1051,11 +1093,11 @@ describe("media actions", () => {
         (prisma.$queryRaw as any).mockResolvedValue([]);
 
         const result = await getAccessibleFolders(
-          { access_token: "token", parentId: 1 },
+          { access_token: "token", userRole: "ADMIN", userUid: 1, parentId: 1 },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("父文件夹不存在时返回 404", async () => {
@@ -1063,11 +1105,16 @@ describe("media actions", () => {
         mockPrismaVirtualFolderFindUnique.mockResolvedValue(null);
 
         const result = await getAccessibleFolders(
-          { access_token: "token", parentId: 999 },
+          {
+            access_token: "token",
+            userRole: "ADMIN",
+            userUid: 1,
+            parentId: 999,
+          },
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -1075,10 +1122,10 @@ describe("media actions", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
         const result = await getAccessibleFolders(
-          { access_token: "token" },
+          { access_token: "token", userRole: "ADMIN", userUid: 1 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -1104,7 +1151,7 @@ describe("media actions", () => {
           { access_token: "token", folderId: 10 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(true);
+        expect((result as any).success).toBe(true);
       });
 
       it("未认证时返回未授权", async () => {
@@ -1113,7 +1160,7 @@ describe("media actions", () => {
           { access_token: "token", folderId: 10 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
 
       it("所有角色都可访问", async () => {
@@ -1139,7 +1186,7 @@ describe("media actions", () => {
             { access_token: "token", folderId: 10 },
             { environment: "serveraction" },
           );
-          expect(result.success).toBe(true);
+          expect((result as any).success).toBe(true);
         }
       });
     });
@@ -1153,8 +1200,8 @@ describe("media actions", () => {
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
-        expect(result.data).toEqual([{ id: null, name: "全部" }]);
+        expect((result as any).success).toBe(true);
+        expect((result as any).data).toEqual([{ id: null, name: "全部" }]);
       });
     });
 
@@ -1168,7 +1215,7 @@ describe("media actions", () => {
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
 
@@ -1192,10 +1239,10 @@ describe("media actions", () => {
           { environment: "serveraction" },
         );
 
-        expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
+        expect((result as any).success).toBe(true);
+        expect((result as any).data).toBeDefined();
         // 第一个应该是 {id: null, name: "全部"}
-        expect(result.data[0]).toEqual({ id: null, name: "全部" });
+        expect((result as any).data[0]).toEqual({ id: null, name: "全部" });
       });
     });
 
@@ -1206,7 +1253,7 @@ describe("media actions", () => {
           { access_token: "token", folderId: 10 },
           { environment: "serveraction" },
         );
-        expect(result.success).toBe(false);
+        expect((result as any).success).toBe(false);
       });
     });
   });
@@ -1220,7 +1267,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
@@ -1229,7 +1276,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("AUTHOR 不能编辑其他用户的文件", async () => {
@@ -1243,7 +1290,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1254,7 +1301,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
@@ -1263,7 +1310,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1274,7 +1321,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
@@ -1283,7 +1330,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1293,19 +1340,31 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1315,19 +1374,19 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1338,7 +1397,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
@@ -1347,7 +1406,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1355,19 +1414,29 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1375,10 +1444,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1386,10 +1455,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1397,10 +1466,16 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1408,10 +1483,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1422,7 +1497,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1430,10 +1505,15 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1444,7 +1524,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1452,10 +1532,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1464,10 +1544,16 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1479,7 +1565,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1491,7 +1577,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1503,7 +1589,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1515,7 +1601,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1526,7 +1612,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1535,10 +1621,10 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaAggregate.mockRejectedValue(new Error("DB error"));
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1548,10 +1634,10 @@ describe("media actions", () => {
       const prisma = (await import("@/lib/server/prisma")).default;
       (prisma.$queryRaw as any).mockRejectedValue(new Error("DB error"));
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1565,7 +1651,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1574,10 +1660,10 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1586,10 +1672,10 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1601,7 +1687,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1615,7 +1701,7 @@ describe("media actions", () => {
         { access_token: "token", folderIds: [1], targetFolderId: 2 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1623,29 +1709,47 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1661,7 +1765,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1681,7 +1785,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1], isOptimized: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1706,7 +1810,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1720,11 +1824,11 @@ describe("media actions", () => {
         dailyStats: [],
       });
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      expect((result as any).success).toBe(true);
+      expect((result as any).data).toBeDefined();
     });
   });
 
@@ -1734,10 +1838,10 @@ describe("media actions", () => {
       const prisma = (await import("@/lib/server/prisma")).default;
       (prisma.$queryRaw as any).mockResolvedValue([]);
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1774,7 +1878,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, altText: "New Alt" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1790,7 +1894,7 @@ describe("media actions", () => {
           galleryPhoto: null,
         },
       ]);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           media: { updateMany: vi.fn() },
           photo: { createMany: vi.fn(), deleteMany: vi.fn() },
@@ -1801,7 +1905,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1], isOptimized: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1841,7 +1945,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1, 2] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1868,7 +1972,7 @@ describe("media actions", () => {
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1878,10 +1982,17 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", search: "test" },
+        {
+          access_token: "token",
+          search: "test",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("媒体类型筛选应正确工作", async () => {
@@ -1889,10 +2000,17 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", mediaType: "IMAGE" },
+        {
+          access_token: "token",
+          mediaType: "IMAGE",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1906,10 +2024,10 @@ describe("media actions", () => {
       });
       mockPrismaMediaGroupBy.mockResolvedValue([]);
       const result = await getMediaStats(
-        { access_token: "token", force: true },
+        { access_token: "token", days: 30, force: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1919,10 +2037,18 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", sizeMin: 100, sizeMax: 10000 },
+        {
+          access_token: "token",
+          sizeMin: 100,
+          sizeMax: 10000,
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("日期筛选应正确工作", async () => {
@@ -1934,10 +2060,14 @@ describe("media actions", () => {
           access_token: "token",
           createdAtStart: "2025-01-01",
           createdAtEnd: "2025-12-31",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
         },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1947,10 +2077,10 @@ describe("media actions", () => {
       const prisma = (await import("@/lib/server/prisma")).default;
       (prisma.$queryRaw as any).mockResolvedValue([]);
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1960,10 +2090,17 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", inGallery: true },
+        {
+          access_token: "token",
+          inGallery: true,
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it("优化状态筛选应正确工作", async () => {
@@ -1971,10 +2108,17 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", isOptimized: true },
+        {
+          access_token: "token",
+          isOptimized: true,
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -1985,7 +2129,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -1996,7 +2140,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2007,7 +2151,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2018,7 +2162,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2032,7 +2176,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2042,10 +2186,16 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", sortBy: "size", sortOrder: "desc" },
+        {
+          access_token: "token",
+          sortBy: "size" as const,
+          sortOrder: "desc" as const,
+          page: 1,
+          pageSize: 25,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2053,10 +2203,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2064,10 +2214,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2078,7 +2228,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2086,10 +2236,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2110,7 +2260,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, altText: "Updated Alt" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2121,7 +2271,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2132,7 +2282,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2143,7 +2293,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2151,10 +2301,16 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2165,7 +2321,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2176,7 +2332,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2187,7 +2343,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2198,7 +2354,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2208,10 +2364,16 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token", page: 2, pageSize: 10 },
+        {
+          access_token: "token",
+          page: 2,
+          pageSize: 10,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2228,7 +2390,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2251,7 +2413,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2279,7 +2441,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2287,10 +2449,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2301,7 +2463,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2310,10 +2472,16 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2325,7 +2493,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2337,7 +2505,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2349,7 +2517,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2361,7 +2529,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2369,10 +2537,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2380,10 +2548,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2394,7 +2562,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2402,10 +2570,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2413,10 +2581,16 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2424,10 +2598,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2438,7 +2612,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2446,10 +2620,15 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2459,10 +2638,16 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2479,7 +2664,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2501,7 +2686,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2529,7 +2714,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2545,7 +2730,7 @@ describe("media actions", () => {
           galleryPhoto: null,
         },
       ]);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           media: { updateMany: vi.fn() },
           photo: { createMany: vi.fn(), deleteMany: vi.fn() },
@@ -2556,7 +2741,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1], isOptimized: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2567,7 +2752,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2576,10 +2761,16 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2591,7 +2782,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2603,7 +2794,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2615,7 +2806,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2627,7 +2818,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2635,10 +2826,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2646,10 +2837,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2660,7 +2851,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2668,10 +2859,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2679,10 +2870,16 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2690,10 +2887,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2704,7 +2901,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2712,10 +2909,15 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2725,10 +2927,16 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2745,7 +2953,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2767,7 +2975,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2795,7 +3003,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2811,7 +3019,7 @@ describe("media actions", () => {
           galleryPhoto: null,
         },
       ]);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           media: { updateMany: vi.fn() },
           photo: { createMany: vi.fn(), deleteMany: vi.fn() },
@@ -2822,7 +3030,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1], isOptimized: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -2833,7 +3041,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2842,10 +3050,16 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2857,7 +3071,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2869,7 +3083,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2881,7 +3095,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2893,7 +3107,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2901,10 +3115,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2912,10 +3126,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2926,7 +3140,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2934,10 +3148,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2945,10 +3159,16 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2956,10 +3176,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2970,7 +3190,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2978,10 +3198,15 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -2991,10 +3216,16 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3011,7 +3242,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3033,7 +3264,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3061,7 +3292,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3077,7 +3308,7 @@ describe("media actions", () => {
           galleryPhoto: null,
         },
       ]);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           media: { updateMany: vi.fn() },
           photo: { createMany: vi.fn(), deleteMany: vi.fn() },
@@ -3088,7 +3319,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1], isOptimized: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3099,7 +3330,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3108,10 +3339,16 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3123,7 +3360,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3135,7 +3372,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3147,7 +3384,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3159,7 +3396,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3167,10 +3404,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3178,10 +3415,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3192,7 +3429,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3200,10 +3437,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3211,10 +3448,16 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3222,10 +3465,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3236,7 +3479,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3244,10 +3487,15 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3257,10 +3505,16 @@ describe("media actions", () => {
       mockPrismaMediaFindMany.mockResolvedValue([]);
       mockPrismaMediaCount.mockResolvedValue(0);
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3277,7 +3531,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3299,7 +3553,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3327,7 +3581,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3343,7 +3597,7 @@ describe("media actions", () => {
           galleryPhoto: null,
         },
       ]);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           media: { updateMany: vi.fn() },
           photo: { createMany: vi.fn(), deleteMany: vi.fn() },
@@ -3354,7 +3608,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1], isOptimized: true },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
   });
 
@@ -3365,7 +3619,7 @@ describe("media actions", () => {
         {},
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3374,10 +3628,16 @@ describe("media actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3389,7 +3649,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3401,7 +3661,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1, originalName: "updated.jpg" },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3413,7 +3673,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3425,7 +3685,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3433,10 +3693,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3444,10 +3704,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3458,7 +3718,7 @@ describe("media actions", () => {
         { access_token: "token", folderId: 10 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3466,10 +3726,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getAccessibleFolders(
-        { access_token: "token" },
+        { access_token: "token", userRole: "ADMIN", userUid: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3477,10 +3737,16 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3488,10 +3754,10 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3502,7 +3768,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3510,10 +3776,15 @@ describe("media actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await moveItems(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3523,28 +3794,28 @@ describe("media actions", () => {
     it("空名称返回失败", async () => {
       mockAuthSuccess();
       const result = await createFolder(
-        { access_token: "token", name: "" },
+        { access_token: "token", name: "", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("名称超过100字符返回失败", async () => {
       mockAuthSuccess();
       const result = await createFolder(
-        { access_token: "token", name: "a".repeat(101) },
+        { access_token: "token", name: "a".repeat(101), parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("名称含非法字符返回失败", async () => {
       mockAuthSuccess();
       const result = await createFolder(
-        { access_token: "token", name: "test/folder" },
+        { access_token: "token", name: "test/folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("父文件夹未找到返回失败", async () => {
@@ -3554,17 +3825,17 @@ describe("media actions", () => {
         { access_token: "token", name: "New Folder", parentId: 999 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockAuthSuccess();
       mockPrismaVirtualFolderFindFirst.mockRejectedValue(new Error("DB error"));
       const result = await createFolder(
-        { access_token: "token", name: "New Folder" },
+        { access_token: "token", name: "New Folder", parentId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3575,7 +3846,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("文件夹未找到返回失败", async () => {
@@ -3585,7 +3856,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [999] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
@@ -3595,7 +3866,7 @@ describe("media actions", () => {
         { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3603,10 +3874,15 @@ describe("media actions", () => {
     it("无选中项目返回失败", async () => {
       mockAuthSuccess();
       const result = await moveItems(
-        { access_token: "token", mediaIds: [], folderIds: [] },
+        {
+          access_token: "token",
+          mediaIds: [],
+          folderIds: [],
+          targetFolderId: null,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("目标文件夹未找到返回失败", async () => {
@@ -3616,17 +3892,17 @@ describe("media actions", () => {
         { access_token: "token", mediaIds: [1], targetFolderId: 999 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockAuthSuccess();
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await moveItems(
-        { access_token: "token", mediaIds: [1] },
+        { access_token: "token", mediaIds: [1], targetFolderId: null },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3635,10 +3911,16 @@ describe("media actions", () => {
       mockAuthSuccess();
       mockPrismaVirtualFolderFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaExplorerPage(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3647,10 +3929,16 @@ describe("media actions", () => {
       mockAuthSuccess();
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getMediaList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "createdAt" as const,
+          sortOrder: "desc" as const,
+        },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3662,7 +3950,7 @@ describe("media actions", () => {
         { access_token: "token", id: 1 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3671,10 +3959,10 @@ describe("media actions", () => {
       mockAuthSuccess();
       mockPrismaMediaFindMany.mockRejectedValue(new Error("DB error"));
       const result = await batchUpdateMedia(
-        { access_token: "token", ids: [1], data: { altText: "test" } },
+        { access_token: "token", ids: [1] },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3682,20 +3970,20 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockAuthSuccess();
       mockPrismaMediaAggregate.mockRejectedValue(new Error("DB error"));
       const result = await getMediaStats(
-        { access_token: "token" },
+        { access_token: "token", days: 30, force: false },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 
@@ -3703,10 +3991,10 @@ describe("media actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getMediaTrends(
-        { access_token: "token" },
+        { access_token: "token", days: 30, count: 30 },
         { environment: "serveraction" },
       );
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
   });
 });

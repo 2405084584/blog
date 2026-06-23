@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -84,7 +84,7 @@ describe("media", () => {
       const { getGalleryPhotosData } = await import("@/lib/server/media");
       const result = await getGalleryPhotosData({});
 
-      const photo = result.photos[0];
+      const photo = result.photos[0]!;
       expect(photo.id).toBe(1);
       expect(photo.slug).toBe("photo-1");
       expect(photo.size).toBe(1024);
@@ -99,15 +99,15 @@ describe("media", () => {
       const { getGalleryPhotosData } = await import("@/lib/server/media");
       const result = await getGalleryPhotosData({});
 
-      expect(result.photos[0].imageUrl).toBe("/p/signed-abc123");
-      expect(result.photos[1].imageUrl).toBe("/p/signed-def456");
+      expect(result.photos[0]!.imageUrl).toBe("/p/signed-abc123");
+      expect(result.photos[1]!.imageUrl).toBe("/p/signed-def456");
     });
 
     it("当照片 alt 为 null 时应返回 null", async () => {
       const { getGalleryPhotosData } = await import("@/lib/server/media");
       const result = await getGalleryPhotosData({});
 
-      expect(result.photos[1].alt).toBeNull();
+      expect(result.photos[1]!.alt).toBeNull();
     });
 
     it("应按创建时间排序（默认）", async () => {

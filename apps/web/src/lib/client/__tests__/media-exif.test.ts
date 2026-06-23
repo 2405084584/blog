@@ -17,7 +17,7 @@ import {
   formatSensingMethod,
   formatShotDateTime,
   formatWhiteBalance,
-} from "../media-exif";
+} from "@/lib/client/media-exif";
 
 describe("formatDateTime", () => {
   it("应格式化 Date 对象为中文日期字符串", () => {

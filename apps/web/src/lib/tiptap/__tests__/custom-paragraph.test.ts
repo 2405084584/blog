@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { CustomParagraph } from "../custom-paragraph";
+import { CustomParagraph } from "@/lib/tiptap/custom-paragraph";
 
 function getRenderMarkdown() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const config = (CustomParagraph as any).config;
   return config?.renderMarkdown;
 }

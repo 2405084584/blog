@@ -192,6 +192,11 @@ describe("security actions", () => {
   describe("getIPList", () => {
     const validParams = {
       access_token: "admin-token",
+      page: 1,
+      pageSize: 10,
+      filter: "all" as const,
+      sortBy: "ip" as const,
+      sortOrder: "desc" as const,
     };
 
     it("速率限制触发时应返回 429", async () => {
@@ -230,7 +235,7 @@ describe("security actions", () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.items).toHaveLength(1);
-      expect(result.data?.items[0].ip).toBe("1.2.3.4");
+      expect(result.data?.items[0]!.ip).toBe("1.2.3.4");
     });
   });
 
@@ -275,6 +280,7 @@ describe("security actions", () => {
       const result = await securityModule.banIP({
         access_token: "admin-token",
         ip: "5.6.7.8",
+        duration: 3600,
       });
 
       expect(result.success).toBe(true);
@@ -372,6 +378,7 @@ describe("security actions", () => {
   describe("getEndpointStats", () => {
     const validParams = {
       access_token: "admin-token",
+      hours: 24,
     };
 
     it("速率限制触发时应返回 429", async () => {
@@ -404,8 +411,8 @@ describe("security actions", () => {
       expect(result.data?.endpoints).toHaveLength(2);
       expect(result.data?.totalRequests).toBe(3);
       // api/users 应排在前面（2次 > 1次）
-      expect(result.data?.endpoints[0].endpoint).toBe("api/users");
-      expect(result.data?.endpoints[0].count).toBe(2);
+      expect(result.data?.endpoints[0]!.endpoint).toBe("api/users");
+      expect(result.data?.endpoints[0]!.count).toBe(2);
     });
   });
 
@@ -416,6 +423,8 @@ describe("security actions", () => {
   describe("getRequestTrends", () => {
     const validParams = {
       access_token: "admin-token",
+      hours: 24,
+      granularity: "hour" as const,
     };
 
     it("速率限制触发时应返回 429", async () => {
@@ -452,7 +461,7 @@ describe("security actions", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].count).toBe(12);
+      expect(result.data?.[0]!.count).toBe(12);
     });
   });
 
@@ -494,7 +503,11 @@ describe("security actions", () => {
       const result = await mod.getIPList({
         access_token: "token",
         filter: "banned",
-      });
+        page: 1,
+        pageSize: 10,
+        sortBy: "ip",
+        sortOrder: "desc",
+      } as any);
       expect(result.success).toBe(true);
     });
 
@@ -508,7 +521,12 @@ describe("security actions", () => {
       const result = await mod.getIPList({
         access_token: "token",
         search: "1.2",
-      });
+        page: 1,
+        pageSize: 10,
+        filter: "all",
+        sortBy: "ip",
+        sortOrder: "desc",
+      } as any);
       expect(result.success).toBe(true);
     });
 
@@ -516,7 +534,14 @@ describe("security actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockRedisScan.mockRejectedValue(new Error("Redis error"));
       const mod = await import("@/actions/security");
-      const result = await mod.getIPList({ access_token: "token" });
+      const result = await mod.getIPList({
+        access_token: "token",
+        page: 1,
+        pageSize: 10,
+        filter: "all",
+        sortBy: "ip",
+        sortOrder: "desc",
+      } as any);
       expect(result.success).toBe(false);
     });
   });
@@ -529,7 +554,8 @@ describe("security actions", () => {
       const result = await mod.banIP({
         access_token: "token",
         ip: "1.2.3.4",
-      });
+        duration: 3600,
+      } as any);
       expect(result.success).toBe(false);
     });
   });
@@ -563,7 +589,10 @@ describe("security actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockRedisZrangebyscore.mockResolvedValue([]);
       const mod = await import("@/actions/security");
-      const result = await mod.getEndpointStats({ access_token: "token" });
+      const result = await mod.getEndpointStats({
+        access_token: "token",
+        hours: 24,
+      } as any);
       expect(result.success).toBe(true);
     });
 
@@ -571,7 +600,10 @@ describe("security actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockRedisZrangebyscore.mockRejectedValue(new Error("Redis error"));
       const mod = await import("@/actions/security");
-      const result = await mod.getEndpointStats({ access_token: "token" });
+      const result = await mod.getEndpointStats({
+        access_token: "token",
+        hours: 24,
+      } as any);
       expect(result.success).toBe(false);
     });
   });

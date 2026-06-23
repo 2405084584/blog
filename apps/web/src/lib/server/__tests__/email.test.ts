@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -185,7 +185,7 @@ describe("email", () => {
         null,
         null,
         "Test Site",
-      ]);
+      ] as any);
 
       const { sendEmail } = await import("@/lib/server/email");
       const result = await sendEmail({
@@ -208,7 +208,7 @@ describe("email", () => {
         null,
         null,
         "Test Site",
-      ]);
+      ] as any);
 
       const { sendEmail } = await import("@/lib/server/email");
       const result = await sendEmail({
@@ -337,7 +337,7 @@ describe("email", () => {
           password: "smtp-pass",
         },
         "Test Site",
-      ]);
+      ] as any);
 
       const { sendEmail } = await import("@/lib/server/email");
       const result = await sendEmail({
@@ -367,7 +367,7 @@ describe("email", () => {
           password: "smtp-pass",
         },
         "Test Site",
-      ]);
+      ] as any);
 
       const { sendEmail } = await import("@/lib/server/email");
       await sendEmail({
@@ -399,7 +399,7 @@ describe("email", () => {
           password: "smtp-pass",
         },
         "Test Site",
-      ]);
+      ] as any);
 
       mockSendMail.mockRejectedValueOnce(new Error("SMTP Error"));
 
@@ -430,7 +430,7 @@ describe("email", () => {
           password: "smtp-pass",
         },
         "Test Site",
-      ]);
+      ] as any);
 
       mockSendMail.mockRejectedValueOnce("string error");
 
@@ -460,7 +460,7 @@ describe("email", () => {
         null, // 无 Resend
         null, // 无 SMTP
         "Test Site",
-      ]);
+      ] as any);
 
       const { sendEmail } = await import("@/lib/server/email");
       const result = await sendEmail({

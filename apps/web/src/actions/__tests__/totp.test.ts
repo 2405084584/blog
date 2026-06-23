@@ -316,7 +316,7 @@ describe("totp actions", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data?.userInfo.username).toBe("test");
+      expect((result as any).data?.userInfo.username).toBe("test");
       expect(mockResetTotpFailCount).toHaveBeenCalledWith(1);
     });
 

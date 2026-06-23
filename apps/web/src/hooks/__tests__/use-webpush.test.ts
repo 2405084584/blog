@@ -257,8 +257,9 @@ describe("useWebPush subscribe flow", () => {
       serviceWorker: undefined,
     });
     // 确保 'PushManager' in window 为 false
-    const originalPushManager = (window as Record<string, unknown>).PushManager;
-    delete (window as Record<string, unknown>).PushManager;
+    const originalPushManager = (window as unknown as Record<string, unknown>)
+      .PushManager;
+    delete (window as unknown as Record<string, unknown>).PushManager;
 
     const { useWebPush } = await import("@/hooks/use-webpush");
     const { result } = renderHook(() => useWebPush());
@@ -271,7 +272,8 @@ describe("useWebPush subscribe flow", () => {
 
     // 恢复
     if (originalPushManager) {
-      (window as Record<string, unknown>).PushManager = originalPushManager;
+      (window as unknown as Record<string, unknown>).PushManager =
+        originalPushManager;
     }
   });
 });

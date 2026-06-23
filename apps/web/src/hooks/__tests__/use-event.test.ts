@@ -6,6 +6,7 @@ import { useEvent } from "@/hooks/use-event";
 // 因此可以通过 useEvent().getState() 直接测试 store 的状态和方法
 describe("useEvent store", () => {
   // 获取 store 实例
+
   function getStore() {
     return useEvent().getState();
   }
@@ -161,8 +162,8 @@ describe("useEvent store", () => {
     });
     const listener2 = vi.fn(async () => "success");
 
-    state.on("settled-event", id1, listener1);
-    state.on("settled-event", id2, listener2);
+    state.on("settled-event", id1, listener1 as any);
+    state.on("settled-event", id2, listener2 as any);
 
     // emit 使用 Promise.allSettled，对于异步错误不会 reject
     await expect(state.emit("settled-event", "data")).resolves.not.toThrow();

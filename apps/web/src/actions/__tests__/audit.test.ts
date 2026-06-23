@@ -59,8 +59,8 @@ vi.mock("@/lib/server/ip-utils", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
 import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
 import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
@@ -258,6 +258,7 @@ describe("audit actions", () => {
         access_token: "valid-token",
         days: 30,
         count: 30,
+        groupBy: "action",
       });
 
       expect(result).toEqual(expect.objectContaining({ success: true }));
@@ -288,6 +289,7 @@ describe("audit actions", () => {
         access_token: "invalid",
         days: 30,
         count: 30,
+        groupBy: "action",
       });
 
       expect(result).toEqual(

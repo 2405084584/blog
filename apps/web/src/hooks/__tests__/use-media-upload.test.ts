@@ -7,6 +7,7 @@ vi.mock("@vercel/blob/client", () => ({
 }));
 
 import { put as putBlob } from "@vercel/blob/client";
+
 import { useMediaUpload } from "@/hooks/use-media-upload";
 
 // Mock URL
@@ -57,9 +58,9 @@ function createSuccessXMLHttpRequest(responseText: string = "{}") {
     upload = {
       addEventListener: vi.fn(),
     };
-    private listeners: Record<string, Function[]> = {};
+    private listeners: Record<string, ((...args: any[]) => any)[]> = {};
 
-    addEventListener(event: string, cb: Function) {
+    addEventListener(event: string, cb: (...args: any[]) => any) {
       if (!this.listeners[event]) this.listeners[event] = [];
       this.listeners[event].push(cb);
     }
@@ -98,9 +99,9 @@ function createErrorXMLHttpRequest() {
     upload = {
       addEventListener: vi.fn(),
     };
-    private listeners: Record<string, Function[]> = {};
+    private listeners: Record<string, ((...args: any[]) => any)[]> = {};
 
-    addEventListener(event: string, cb: Function) {
+    addEventListener(event: string, cb: (...args: any[]) => any) {
       if (!this.listeners[event]) this.listeners[event] = [];
       this.listeners[event].push(cb);
     }
@@ -171,7 +172,7 @@ describe("useMediaUpload", () => {
         });
 
         expect(mockCreateObjectURL).toHaveBeenCalledWith(file);
-        expect(result.current.files[0].previewUrl).toBe("blob:mock-url");
+        expect(result.current.files[0]!.previewUrl).toBe("blob:mock-url");
       });
 
       it("记录原始文件大小", () => {
@@ -182,7 +183,7 @@ describe("useMediaUpload", () => {
           result.current.handleFileSelect(createFileList([file]));
         });
 
-        expect(result.current.files[0].originalSize).toBe(2048);
+        expect(result.current.files[0]!.originalSize).toBe(2048);
       });
 
       it("设置状态为 pending", () => {
@@ -194,7 +195,7 @@ describe("useMediaUpload", () => {
           );
         });
 
-        expect(result.current.files[0].status).toBe("pending");
+        expect(result.current.files[0]!.status).toBe("pending");
       });
 
       it("生成唯一 ID", () => {
@@ -206,7 +207,9 @@ describe("useMediaUpload", () => {
           );
         });
 
-        expect(result.current.files[0].id).not.toBe(result.current.files[1].id);
+        expect(result.current.files[0]!.id).not.toBe(
+          result.current.files[1]!.id,
+        );
       });
     });
 
@@ -222,7 +225,7 @@ describe("useMediaUpload", () => {
           );
         });
         expect(result.current.files).toHaveLength(1);
-        expect(result.current.files[0].file.name).toBe("a.png");
+        expect(result.current.files[0]!.file.name).toBe("a.png");
 
         act(() => {
           result.current.handleFileSelect(
@@ -230,7 +233,7 @@ describe("useMediaUpload", () => {
           );
         });
         expect(result.current.files).toHaveLength(1);
-        expect(result.current.files[0].file.name).toBe("b.png");
+        expect(result.current.files[0]!.file.name).toBe("b.png");
       });
 
       it("替换时清理旧预览 URL", () => {
@@ -263,7 +266,7 @@ describe("useMediaUpload", () => {
         });
 
         expect(result.current.files).toHaveLength(1);
-        expect(result.current.files[0].file.name).toBe("first.png");
+        expect(result.current.files[0]!.file.name).toBe("first.png");
       });
     });
 
@@ -383,7 +386,7 @@ describe("useMediaUpload", () => {
         } as unknown as ClipboardEvent);
       });
 
-      const fileName = result.current.files[0].file.name;
+      const fileName = result.current.files[0]!.file.name;
       expect(fileName).toMatch(/^粘贴的图片_.*\.png$/);
     });
   });
@@ -425,7 +428,7 @@ describe("useMediaUpload", () => {
       let uploadResult: { success: boolean; data?: any };
       await act(async () => {
         uploadResult = await result.current.uploadSingleFile(
-          result.current.files[0],
+          result.current.files[0]!,
         );
       });
 
@@ -461,13 +464,13 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
       const initCall = mockFetch.mock.calls[0];
-      expect(initCall[0]).toBe("/admin/media/upload");
-      expect(initCall[1].method).toBe("POST");
-      expect(initCall[1].credentials).toBe("include");
+      expect(initCall![0]).toBe("/admin/media/upload");
+      expect(initCall![1].method).toBe("POST");
+      expect(initCall![1].credentials).toBe("include");
     });
 
     it("使用 customName 上传", async () => {
@@ -498,10 +501,10 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("success");
+      expect(result.current.files[0]!.status).toBe("success");
     });
 
     describe("错误处理", () => {
@@ -530,13 +533,13 @@ describe("useMediaUpload", () => {
         let uploadResult: { success: boolean };
         await act(async () => {
           uploadResult = await result.current.uploadSingleFile(
-            result.current.files[0],
+            result.current.files[0]!,
           );
         });
 
         expect(uploadResult!.success).toBe(false);
-        expect(result.current.files[0].status).toBe("error");
-        expect(result.current.files[0].error).toBe("初始化失败");
+        expect(result.current.files[0]!.status).toBe("error");
+        expect(result.current.files[0]!.error).toBe("初始化失败");
       });
 
       it("init 返回缺少 data 时设置错误状态", async () => {
@@ -558,10 +561,10 @@ describe("useMediaUpload", () => {
         });
 
         await act(async () => {
-          await result.current.uploadSingleFile(result.current.files[0]);
+          await result.current.uploadSingleFile(result.current.files[0]!);
         });
 
-        expect(result.current.files[0].status).toBe("error");
+        expect(result.current.files[0]!.status).toBe("error");
       });
 
       it("网络错误时设置错误状态", async () => {
@@ -589,10 +592,10 @@ describe("useMediaUpload", () => {
         });
 
         await act(async () => {
-          await result.current.uploadSingleFile(result.current.files[0]);
+          await result.current.uploadSingleFile(result.current.files[0]!);
         });
 
-        expect(result.current.files[0].status).toBe("error");
+        expect(result.current.files[0]!.status).toBe("error");
       });
     });
   });
@@ -641,10 +644,10 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("success");
+      expect(result.current.files[0]!.status).toBe("success");
     });
 
     it("缺少 uploadUrl 时设置错误状态", async () => {
@@ -674,10 +677,10 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("error");
+      expect(result.current.files[0]!.status).toBe("error");
     });
   });
 
@@ -725,10 +728,10 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("success");
+      expect(result.current.files[0]!.status).toBe("success");
       expect(putBlob).toHaveBeenCalledWith(
         "uploads/test.png",
         expect.any(File),
@@ -767,10 +770,10 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("error");
+      expect(result.current.files[0]!.status).toBe("error");
     });
 
     it("putBlob 抛出异常时设置错误状态", async () => {
@@ -804,10 +807,10 @@ describe("useMediaUpload", () => {
       (putBlob as any).mockRejectedValueOnce(new Error("Blob upload failed"));
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("error");
+      expect(result.current.files[0]!.status).toBe("error");
     });
   });
 
@@ -839,10 +842,10 @@ describe("useMediaUpload", () => {
       });
 
       await act(async () => {
-        await result.current.uploadSingleFile(result.current.files[0]);
+        await result.current.uploadSingleFile(result.current.files[0]!);
       });
 
-      expect(result.current.files[0].status).toBe("error");
+      expect(result.current.files[0]!.status).toBe("error");
     });
   });
 
@@ -1053,7 +1056,7 @@ describe("useMediaUpload", () => {
         );
       });
 
-      const fileId = result.current.files[0].id;
+      const fileId = result.current.files[0]!.id;
       act(() => {
         result.current.removeFile(fileId);
       });
@@ -1072,11 +1075,11 @@ describe("useMediaUpload", () => {
       });
 
       act(() => {
-        result.current.removeFile(result.current.files[0].id);
+        result.current.removeFile(result.current.files[0]!.id);
       });
 
       expect(result.current.files).toHaveLength(1);
-      expect(result.current.files[0].file.name).toBe("b.png");
+      expect(result.current.files[0]!.file.name).toBe("b.png");
     });
   });
 
@@ -1091,10 +1094,13 @@ describe("useMediaUpload", () => {
       });
 
       act(() => {
-        result.current.updateFileName(result.current.files[0].id, "custom.png");
+        result.current.updateFileName(
+          result.current.files[0]!.id,
+          "custom.png",
+        );
       });
 
-      expect(result.current.files[0].customName).toBe("custom.png");
+      expect(result.current.files[0]!.customName).toBe("custom.png");
     });
 
     it("不影响其他文件", () => {
@@ -1108,13 +1114,13 @@ describe("useMediaUpload", () => {
 
       act(() => {
         result.current.updateFileName(
-          result.current.files[0].id,
+          result.current.files[0]!.id,
           "renamed.png",
         );
       });
 
-      expect(result.current.files[0].customName).toBe("renamed.png");
-      expect(result.current.files[1].customName).toBeUndefined();
+      expect(result.current.files[0]!.customName).toBe("renamed.png");
+      expect(result.current.files[1]!.customName).toBeUndefined();
     });
   });
 
@@ -1129,10 +1135,13 @@ describe("useMediaUpload", () => {
       });
 
       act(() => {
-        result.current.updateFileName(result.current.files[0].id, "custom.png");
+        result.current.updateFileName(
+          result.current.files[0]!.id,
+          "custom.png",
+        );
       });
 
-      expect(result.current.getDisplayFileName(result.current.files[0])).toBe(
+      expect(result.current.getDisplayFileName(result.current.files[0]!)).toBe(
         "custom.png",
       );
     });
@@ -1146,7 +1155,7 @@ describe("useMediaUpload", () => {
         );
       });
 
-      expect(result.current.getDisplayFileName(result.current.files[0])).toBe(
+      expect(result.current.getDisplayFileName(result.current.files[0]!)).toBe(
         "original.png",
       );
     });
@@ -1163,10 +1172,10 @@ describe("useMediaUpload", () => {
       });
 
       act(() => {
-        result.current.handleImageError(result.current.files[0].id);
+        result.current.handleImageError(result.current.files[0]!.id);
       });
 
-      expect(result.current.files[0].imageLoadError).toBe(true);
+      expect(result.current.files[0]!.imageLoadError).toBe(true);
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   DEFAULT_SITE_FONT_SCALE_PERCENT,
   MAX_SITE_FONT_SCALE_PERCENT,

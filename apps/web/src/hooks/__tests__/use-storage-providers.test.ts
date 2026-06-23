@@ -35,14 +35,14 @@ describe("useStorageProviders", () => {
       type: "EXTERNAL",
       isDefault: false,
     },
-  ];
+  ] as any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetStorageList.mockResolvedValue({
       success: true,
       data: mockProviders,
-    });
+    } as any);
   });
 
   it("禁用时不加载数据", async () => {
@@ -100,12 +100,12 @@ describe("useStorageProviders", () => {
         type: "LOCAL",
         isDefault: false,
       },
-    ];
+    ] as any;
 
     mockGetStorageList.mockResolvedValue({
       success: true,
       data: providersWithoutDefault,
-    });
+    } as any);
 
     const { result } = renderHook(() => useStorageProviders({ enabled: true }));
 
@@ -120,7 +120,7 @@ describe("useStorageProviders", () => {
     mockGetStorageList.mockResolvedValue({
       success: true,
       data: [],
-    });
+    } as any);
 
     const { result } = renderHook(() => useStorageProviders({ enabled: true }));
 
@@ -178,7 +178,7 @@ describe("useStorageProviders", () => {
     mockGetStorageList.mockResolvedValue({
       success: false,
       data: null,
-    });
+    } as any);
 
     const { result } = renderHook(() => useStorageProviders({ enabled: true }));
 
@@ -285,12 +285,12 @@ describe("useStorageProviders", () => {
         type: "AWS_S3",
         isDefault: false,
       },
-    ];
+    ] as any;
 
     mockGetStorageList.mockResolvedValue({
       success: true,
       data: providersWithVirtualDefault,
-    });
+    } as any);
 
     const { result } = renderHook(() =>
       useStorageProviders({ enabled: true, filterVirtual: true }),

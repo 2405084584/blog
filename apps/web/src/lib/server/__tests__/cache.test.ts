@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock redis 模块（必须在 import 之前声明，vi.mock 会自动提升）
 vi.mock("@/lib/server/redis", () => {
@@ -17,7 +17,6 @@ vi.mock("@/lib/server/redis", () => {
   };
 });
 
-import redis, { ensureRedisConnection } from "@/lib/server/redis";
 import {
   clearCache,
   deleteCache,
@@ -31,6 +30,7 @@ import {
   setBatchCache,
   setCache,
 } from "@/lib/server/cache";
+import redis, { ensureRedisConnection } from "@/lib/server/redis";
 
 // 获取 mock 实例的辅助类型
 const mockRedis = vi.mocked(redis);

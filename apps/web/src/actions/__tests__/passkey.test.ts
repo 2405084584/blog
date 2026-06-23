@@ -536,7 +536,7 @@ describe("passkey actions", () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.items).toHaveLength(1);
-      expect(result.data?.items[0].name).toBe("MacBook");
+      expect(result.data?.items[0]!.name).toBe("MacBook");
     });
   });
 

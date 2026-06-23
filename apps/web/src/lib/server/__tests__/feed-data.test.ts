@@ -144,7 +144,7 @@ Content`;
     });
 
     it("handles BOM at start of markdown", () => {
-      const markdown = `﻿# My Title
+      const markdown = `${String.fromCharCode(0xfeff)}# My Title
 
 Content here.`;
       const result = stripLeadingMarkdownTitle(markdown, "My Title");

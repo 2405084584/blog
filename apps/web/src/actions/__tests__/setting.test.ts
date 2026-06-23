@@ -79,8 +79,8 @@ vi.mock("next/server", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
 import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
 import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
@@ -276,7 +276,7 @@ describe("setting actions", () => {
         type: "string",
         default: "old",
       } as never);
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: Function) =>
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
         fn(prisma),
       );
 
@@ -335,7 +335,7 @@ describe("setting actions", () => {
     it("未知配置项返回 400", async () => {
       setupSuccessMocks();
       const { getConfigDefinition } = await import("@/data/default-configs");
-      vi.mocked(getConfigDefinition).mockReturnValue(null);
+      vi.mocked(getConfigDefinition).mockReturnValue(null as any);
 
       const { updateSettings } = await import("@/actions/setting");
       const result = await updateSettings({
@@ -424,7 +424,7 @@ describe("setting actions", () => {
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("invalid") // newValue from setting.value
         .mockReturnValueOnce("a"); // defaultValue from configDef
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
 
       const { updateSettings } = await import("@/actions/setting");
       const result = await updateSettings({
@@ -456,9 +456,9 @@ describe("setting actions", () => {
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("b") // newValue from setting.value
         .mockReturnValueOnce("a"); // defaultValue from configDef
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
       vi.mocked(prisma.config.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = {
           config: { upsert: vi.fn().mockResolvedValue({ key: "test.key" }) },
         };
@@ -486,11 +486,11 @@ describe("setting actions", () => {
         type: "object",
         default: ["a", "b"],
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("not-array") // newValue
         .mockReturnValueOnce(["a", "b"]); // defaultValue
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
 
       const { updateSettings } = await import("@/actions/setting");
       const result = await updateSettings({
@@ -515,11 +515,11 @@ describe("setting actions", () => {
         type: "object",
         default: [1, 2, 3],
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce(["a", "b"]) // newValue
         .mockReturnValueOnce([1, 2, 3]); // defaultValue
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
 
       const { updateSettings } = await import("@/actions/setting");
       const result = await updateSettings({
@@ -544,11 +544,11 @@ describe("setting actions", () => {
         type: "object",
         default: { foo: "bar" },
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("not-object") // newValue
         .mockReturnValueOnce({ foo: "bar" }); // defaultValue
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
 
       const { updateSettings } = await import("@/actions/setting");
       const result = await updateSettings({
@@ -573,11 +573,11 @@ describe("setting actions", () => {
         type: "number",
         default: 42,
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("not-number") // newValue (string)
         .mockReturnValueOnce(42); // defaultValue (number)
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
 
       const { updateSettings } = await import("@/actions/setting");
       const result = await updateSettings({
@@ -602,7 +602,7 @@ describe("setting actions", () => {
         type: "number",
         default: 10,
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("not-a-number") // newValue
         .mockReturnValueOnce(10); // defaultValue
@@ -631,7 +631,7 @@ describe("setting actions", () => {
         type: "number",
         default: 10,
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce(3.5) // newValue
         .mockReturnValueOnce(10); // defaultValue
@@ -660,7 +660,7 @@ describe("setting actions", () => {
         type: "number",
         default: 10,
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce(-1) // newValue
         .mockReturnValueOnce(10); // defaultValue
@@ -689,7 +689,7 @@ describe("setting actions", () => {
         type: "number",
         default: 10,
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce(200) // newValue
         .mockReturnValueOnce(10); // defaultValue
@@ -718,7 +718,7 @@ describe("setting actions", () => {
         type: "number",
         default: 10,
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce(50) // newValue
         .mockReturnValueOnce(10); // defaultValue
@@ -728,7 +728,7 @@ describe("setting actions", () => {
         max: 100,
       });
       vi.mocked(prisma.config.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = {
           config: { upsert: vi.fn().mockResolvedValue({ key: "test.key" }) },
         };
@@ -758,15 +758,15 @@ describe("setting actions", () => {
         type: "string",
         default: "https://old.com",
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("https://old.com")
         .mockReturnValue("https://new.com");
       vi.mocked(prisma.config.findMany).mockResolvedValue([
         { key: "site.url", value: { default: "https://old.com" } },
       ] as never);
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });
@@ -797,15 +797,15 @@ describe("setting actions", () => {
         type: "string",
         default: "https://old.com",
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("https://old.com")
         .mockReturnValue("https://new.com");
       vi.mocked(prisma.config.findMany).mockResolvedValue([
         { key: "site.url", value: { default: "https://old.com" } },
       ] as never);
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });
@@ -833,15 +833,15 @@ describe("setting actions", () => {
         type: "string",
         default: "https://old.com",
       } as never);
-      vi.mocked(extractOptions).mockReturnValue(null);
-      vi.mocked(extractValidationRules).mockReturnValue(null);
+      vi.mocked(extractOptions).mockReturnValue(undefined);
+      vi.mocked(extractValidationRules).mockReturnValue(undefined);
       vi.mocked(extractDefaultValue)
         .mockReturnValueOnce("https://old.com")
         .mockReturnValue("https://new.com");
       vi.mocked(prisma.config.findMany).mockResolvedValue([
         { key: "site.url", value: { default: "https://old.com" } },
       ] as never);
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = { config: { upsert: vi.fn().mockResolvedValue({}) } };
         return (fn as (tx: unknown) => Promise<unknown>)(tx);
       });

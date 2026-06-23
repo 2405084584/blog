@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Redis 和相关模块

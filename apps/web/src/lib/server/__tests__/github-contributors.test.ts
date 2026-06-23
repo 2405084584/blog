@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  type GithubContributor,
   fetchGithubContributors,
+  type GithubContributor,
 } from "@/lib/server/github-contributors";
 
 // ============================================================================
@@ -70,8 +70,8 @@ describe("github-contributors", () => {
             makeApiContributor({
               id: 99,
               login: "contributor1",
-              avatar_url: "https://avatars.githubusercontent.com/u/99?v=4",
-              html_url: "https://github.com/contributor1",
+              avatarUrl: "https://avatars.githubusercontent.com/u/99?v=4",
+              profileUrl: "https://github.com/contributor1",
               contributions: 150,
               type: "User",
             }),
@@ -82,14 +82,14 @@ describe("github-contributors", () => {
 
       const result = await fetchGithubContributors("owner", "repo");
 
-      expect(result[0].id).toBe(99);
-      expect(result[0].login).toBe("contributor1");
-      expect(result[0].avatarUrl).toBe(
+      expect(result[0]!.id).toBe(99);
+      expect(result[0]!.login).toBe("contributor1");
+      expect(result[0]!.avatarUrl).toBe(
         "https://avatars.githubusercontent.com/u/99?v=4",
       );
-      expect(result[0].profileUrl).toBe("https://github.com/contributor1");
-      expect(result[0].contributions).toBe(150);
-      expect(result[0].type).toBe("User");
+      expect(result[0]!.profileUrl).toBe("https://github.com/contributor1");
+      expect(result[0]!.contributions).toBe(150);
+      expect(result[0]!.type).toBe("User");
     });
 
     it("返回多个贡献者", async () => {

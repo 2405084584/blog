@@ -3065,7 +3065,7 @@ describe("stat actions", () => {
 
       const result = await getStorageStats(adminParams);
       expect(result.success).toBe(true);
-      expect(result.data.byType[0].mediaCount).toBe(0);
+      expect(result.data!.byType[0]!.mediaCount).toBe(0);
     });
 
     it("数据库错误时返回 serverError", async () => {

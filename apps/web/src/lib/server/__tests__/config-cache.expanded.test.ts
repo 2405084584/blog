@@ -20,13 +20,13 @@ vi.mock("@/data/default-configs", () => ({
   CONFIG_DEFINITIONS: {},
 }));
 
-import prisma from "@/lib/server/prisma";
 import {
+  getAllConfigs,
   getConfig,
   getConfigs,
-  getAllConfigs,
   getRawConfig,
 } from "@/lib/server/config-cache";
+import prisma from "@/lib/server/prisma";
 
 const mockPrisma = vi.mocked(prisma);
 
@@ -49,7 +49,7 @@ describe("config-cache expanded", () => {
     });
 
     it("从数据库返回配置", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "site.title",
         value: "My Site",
         updatedAt: new Date("2024-01-01"),
@@ -64,13 +64,13 @@ describe("config-cache expanded", () => {
     });
 
     it("配置不存在时返回 null", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue(null);
+      (mockPrisma.config.findUnique as any).mockResolvedValue(null);
       const result = await getRawConfig("nonexistent.key");
       expect(result).toBeNull();
     });
 
     it("数据库查询失败时返回 null", async () => {
-      mockPrisma.config.findUnique.mockRejectedValue(
+      (mockPrisma.config.findUnique as any).mockRejectedValue(
         new Error("DB connection failed"),
       );
       const result = await getRawConfig("site.title");
@@ -78,7 +78,7 @@ describe("config-cache expanded", () => {
     });
 
     it("处理对象类型的配置值", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "theme.settings",
         value: { primary: "#fff", secondary: "#000" },
         updatedAt: new Date("2024-06-15"),
@@ -88,7 +88,7 @@ describe("config-cache expanded", () => {
     });
 
     it("处理 null 配置值", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "optional.setting",
         value: null,
         updatedAt: new Date("2024-01-01"),
@@ -98,7 +98,7 @@ describe("config-cache expanded", () => {
     });
 
     it("description 始终为 undefined", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "site.title",
         value: "Test",
         description: "This should be removed",
@@ -110,7 +110,7 @@ describe("config-cache expanded", () => {
 
     it("updatedAt 正确映射为 Date 对象", async () => {
       const date = new Date("2024-03-15T12:00:00Z");
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "site.title",
         value: "Test",
         updatedAt: date,
@@ -123,7 +123,7 @@ describe("config-cache expanded", () => {
 
   describe("getConfig", () => {
     it("从数据库返回配置值", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "site.title",
         value: "My Site Title",
         updatedAt: new Date(),
@@ -133,23 +133,23 @@ describe("config-cache expanded", () => {
     });
 
     it("数据库返回 null 时回退到默认配置", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue(null);
+      (mockPrisma.config.findUnique as any).mockResolvedValue(null);
       const result = await getConfig("site.title");
       expect(result).toBe("Default Title");
     });
 
     it("没有指定 field 时返回对象的 default 属性", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "theme.color",
         value: { default: "red", dark: "darkred" },
         updatedAt: new Date(),
       });
-      const result = await getConfig("theme.color");
+      const result = await getConfig("theme.color" as any);
       expect(result).toBe("red");
     });
 
     it("数据库和默认值都没有时返回 undefined", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue(null);
+      (mockPrisma.config.findUnique as any).mockResolvedValue(null);
       const result = await getConfig(
         "nonexistent.key" as Parameters<typeof getConfig>[0],
       );
@@ -157,39 +157,42 @@ describe("config-cache expanded", () => {
     });
 
     it("返回指定字段的值", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "theme.color",
         value: { default: "blue", dark: "navy" },
         updatedAt: new Date(),
       });
-      const result = await getConfig("theme.color", "dark");
+      const result = await getConfig("theme.color" as any, "dark");
       expect(result).toBe("navy");
     });
 
     it("返回整个对象当没有 default 属性", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "theme.color",
         value: { primary: "red", secondary: "blue" },
         updatedAt: new Date(),
       });
-      const result = await getConfig("theme.color");
+      const result = await getConfig("theme.color" as any);
       expect(result).toEqual({ primary: "red", secondary: "blue" });
     });
 
     it("字段不存在时返回 undefined", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue({
+      (mockPrisma.config.findUnique as any).mockResolvedValue({
         key: "theme.color",
         value: { default: "blue" },
         updatedAt: new Date(),
       });
-      const result = await getConfig("theme.color", "nonexistent" as any);
+      const result = await getConfig(
+        "theme.color" as any,
+        "nonexistent" as any,
+      );
       expect(await result).toBeUndefined();
     });
   });
 
   describe("getConfigs", () => {
     it("返回多个配置值", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue(null);
+      (mockPrisma.config.findUnique as any).mockResolvedValue(null);
       const result = await getConfigs(["site.title", "site.url"]);
       expect(result).toHaveLength(2);
       expect(result[0]).toBe("Default Title");
@@ -197,7 +200,7 @@ describe("config-cache expanded", () => {
     });
 
     it("处理混合存在和不存在的配置", async () => {
-      mockPrisma.config.findUnique.mockResolvedValue(null);
+      (mockPrisma.config.findUnique as any).mockResolvedValue(null);
       const result = await getConfigs(["site.title", "site.url"]);
       expect(result[0]).toBe("Default Title");
       expect(result[1]).toBe("https://default.example.com");
@@ -211,7 +214,7 @@ describe("config-cache expanded", () => {
 
   describe("getAllConfigs", () => {
     it("返回所有非敏感配置", async () => {
-      mockPrisma.config.findMany.mockResolvedValue([
+      (mockPrisma.config.findMany as any).mockResolvedValue([
         {
           key: "site.title",
           value: "Title",
@@ -235,7 +238,7 @@ describe("config-cache expanded", () => {
     });
 
     it("移除 description 字段", async () => {
-      mockPrisma.config.findMany.mockResolvedValue([
+      (mockPrisma.config.findMany as any).mockResolvedValue([
         {
           key: "site.title",
           value: "Title",
@@ -244,11 +247,11 @@ describe("config-cache expanded", () => {
         },
       ]);
       const result = await getAllConfigs();
-      expect(result["site.title"].description).toBeUndefined();
+      expect(result["site.title"]!.description).toBeUndefined();
     });
 
     it("数据库查询失败时返回空对象", async () => {
-      mockPrisma.config.findMany.mockRejectedValue(
+      (mockPrisma.config.findMany as any).mockRejectedValue(
         new Error("DB connection failed"),
       );
       const result = await getAllConfigs();
@@ -256,27 +259,27 @@ describe("config-cache expanded", () => {
     });
 
     it("过滤所有 secret.* 键", async () => {
-      mockPrisma.config.findMany.mockResolvedValue([
+      (mockPrisma.config.findMany as any).mockResolvedValue([
         { key: "secret.apiKey", value: "key1", updatedAt: new Date() },
         { key: "secret.dbPassword", value: "key2", updatedAt: new Date() },
         { key: "public.setting", value: "visible", updatedAt: new Date() },
       ]);
       const result = await getAllConfigs();
       expect(Object.keys(result)).toEqual(["public.setting"]);
-      expect(result["public.setting"].value).toBe("visible");
+      expect(result["public.setting"]!.value).toBe("visible");
     });
 
     it("保留 updatedAt 为 Date 对象", async () => {
       const date = new Date("2024-06-15T10:30:00Z");
-      mockPrisma.config.findMany.mockResolvedValue([
+      (mockPrisma.config.findMany as any).mockResolvedValue([
         { key: "site.title", value: "Title", updatedAt: date },
       ]);
       const result = await getAllConfigs();
-      expect(result["site.title"].updatedAt).toBeInstanceOf(Date);
+      expect(result["site.title"]!.updatedAt).toBeInstanceOf(Date);
     });
 
     it("处理多个配置", async () => {
-      mockPrisma.config.findMany.mockResolvedValue([
+      (mockPrisma.config.findMany as any).mockResolvedValue([
         { key: "site.title", value: "Title", updatedAt: new Date() },
         {
           key: "site.url",
@@ -287,9 +290,9 @@ describe("config-cache expanded", () => {
       ]);
       const result = await getAllConfigs();
       expect(Object.keys(result)).toHaveLength(3);
-      expect(result["site.title"].value).toBe("Title");
-      expect(result["site.url"].value).toBe("https://example.com");
-      expect(result["seo.description"].value).toBe("A CMS");
+      expect(result["site.title"]!.value).toBe("Title");
+      expect(result["site.url"]!.value).toBe("https://example.com");
+      expect(result["seo.description"]!.value).toBe("A CMS");
     });
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -15,12 +15,10 @@ vi.mock("@/lib/server/prisma", () => ({
 // Mock oss
 vi.mock("@/lib/server/oss", () => ({
   buildObjectKey: vi.fn().mockReturnValue("temp/backups/test.json"),
-  uploadObject: vi
-    .fn()
-    .mockResolvedValue({
-      url: "https://example.com/test.json",
-      key: "test.json",
-    }),
+  uploadObject: vi.fn().mockResolvedValue({
+    url: "https://example.com/test.json",
+    key: "test.json",
+  }),
 }));
 
 // Mock post-access

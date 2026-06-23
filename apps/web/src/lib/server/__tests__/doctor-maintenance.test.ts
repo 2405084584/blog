@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -235,9 +235,10 @@ describe("doctor-maintenance", () => {
 
   describe("runDoctorMaintenance", () => {
     it("应调用 runAutoCleanupMaintenance", async () => {
-      const { runDoctorMaintenance, runAutoCleanupMaintenance } = await import(
-        "@/lib/server/doctor-maintenance"
-      );
+      const {
+        runDoctorMaintenance,
+        runAutoCleanupMaintenance: _runAutoCleanupMaintenance,
+      } = await import("@/lib/server/doctor-maintenance");
 
       const result = await runDoctorMaintenance();
 

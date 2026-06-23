@@ -111,8 +111,8 @@ describe("useBroadcastStore", () => {
     });
     const callback2 = vi.fn(async () => "success");
 
-    state.registerCallback(id1, callback1);
-    state.registerCallback(id2, callback2);
+    state.registerCallback(id1, callback1 as any);
+    state.registerCallback(id2, callback2 as any);
 
     // broadcast 使用 Promise.allSettled，异步错误不会中断
     await expect(state.broadcast("msg")).resolves.not.toThrow();

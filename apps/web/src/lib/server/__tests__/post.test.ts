@@ -61,6 +61,7 @@ vi.mock("@/types/media", () => ({
   },
 }));
 
+import type { PostData } from "@/lib/server/post";
 import {
   getAdjacentPosts,
   getLatestPublishedPostsForJsonLd,
@@ -69,7 +70,6 @@ import {
   getRecommendedPosts,
   renderPostContent,
 } from "@/lib/server/post";
-import type { PostData } from "@/lib/server/post";
 
 // 辅助函数：创建 mock 数据库文章
 function createMockDbPost(overrides: Record<string, unknown> = {}) {
@@ -377,7 +377,9 @@ export default function Layout({ children }) {
 
       const result = await getPostShell("test-post");
       expect(result.contentLength).toBe("Hello World".length);
-      expect((result as Record<string, unknown>).content).toBeUndefined();
+      expect(
+        (result as unknown as Record<string, unknown>).content,
+      ).toBeUndefined();
     });
 
     it("正确计算 contentLength", async () => {
@@ -453,8 +455,8 @@ export default function Layout({ children }) {
 
       const result = await getLatestPublishedPostsForJsonLd();
       expect(result).toHaveLength(2);
-      expect(result[0].title).toBe("Post 1");
-      expect(result[0].featuredImage).toBe("/p/abc123");
+      expect(result[0]!.title).toBe("Post 1");
+      expect(result[0]!.featuredImage).toBe("/p/abc123");
     });
 
     it("nickname 为 null 时使用 username", async () => {
@@ -466,7 +468,7 @@ export default function Layout({ children }) {
       mockPostFindMany.mockResolvedValue(posts);
 
       const result = await getLatestPublishedPostsForJsonLd();
-      expect(result[0].author?.name).toBe("user1");
+      expect(result[0]!.author?.name).toBe("user1");
     });
 
     it("有 nickname 时使用 nickname", async () => {
@@ -478,7 +480,7 @@ export default function Layout({ children }) {
       mockPostFindMany.mockResolvedValue(posts);
 
       const result = await getLatestPublishedPostsForJsonLd();
-      expect(result[0].author?.name).toBe("Display Name");
+      expect(result[0]!.author?.name).toBe("Display Name");
     });
 
     it("author 为 null 时返回 null", async () => {
@@ -486,7 +488,7 @@ export default function Layout({ children }) {
       mockPostFindMany.mockResolvedValue(posts);
 
       const result = await getLatestPublishedPostsForJsonLd();
-      expect(result[0].author).toBeNull();
+      expect(result[0]!.author).toBeNull();
     });
 
     it("正确限制结果数量", async () => {
@@ -552,9 +554,9 @@ export default function Layout({ children }) {
       mockPostFindMany.mockResolvedValue(posts);
 
       const result = await getLatestPublishedPostsForJsonLd();
-      expect(result[0].publishedAt).toEqual(new Date("2024-06-01"));
-      expect(result[0].createdAt).toEqual(new Date("2024-05-01"));
-      expect(result[0].updatedAt).toEqual(new Date("2024-06-15"));
+      expect(result[0]!.publishedAt).toEqual(new Date("2024-06-01"));
+      expect(result[0]!.createdAt).toEqual(new Date("2024-05-01"));
+      expect(result[0]!.updatedAt).toEqual(new Date("2024-06-15"));
     });
 
     it("包含 profilePath", async () => {
@@ -566,7 +568,7 @@ export default function Layout({ children }) {
       mockPostFindMany.mockResolvedValue(posts);
 
       const result = await getLatestPublishedPostsForJsonLd();
-      expect(result[0].author?.profilePath).toBe("/user/42");
+      expect(result[0]!.author?.profilePath).toBe("/user/42");
     });
   });
 
@@ -738,7 +740,7 @@ export default function Layout({ children }) {
 
       const result = await getRecommendedPosts(currentPost);
       expect(result.length).toBeGreaterThan(0);
-      expect(result[0].recommendationScore).toBe(12);
+      expect(result[0]!.recommendationScore).toBe(12);
     });
 
     it("基于标签推荐文章", async () => {
@@ -764,7 +766,7 @@ export default function Layout({ children }) {
 
       const result = await getRecommendedPosts(currentPost);
       expect(result.length).toBeGreaterThan(0);
-      expect(result[0].recommendationScore).toBe(8);
+      expect(result[0]!.recommendationScore).toBe(8);
     });
 
     it("无分类和标签时返回空数组", async () => {
@@ -906,8 +908,8 @@ export default function Layout({ children }) {
 
       const result = await getRecommendedPosts(currentPost);
       if (result.length >= 2) {
-        expect(result[0].recommendationScore).toBeGreaterThanOrEqual(
-          result[1].recommendationScore,
+        expect(result[0]!.recommendationScore).toBeGreaterThanOrEqual(
+          result[1]!.recommendationScore,
         );
       }
     });

@@ -60,7 +60,8 @@ vi.mock("@octokit/rest", () => ({
 }));
 
 import fs from "node:fs/promises";
-import { buildObjectKey, uploadObject, deleteObject } from "@/lib/server/oss";
+
+import { buildObjectKey, deleteObject, uploadObject } from "@/lib/server/oss";
 
 describe("oss utilities", () => {
   describe("buildObjectKey", () => {
@@ -337,7 +338,7 @@ describe("oss utilities", () => {
           },
         });
 
-        const callArgs = mockVercelPut.mock.calls[0];
+        const callArgs = mockVercelPut.mock.calls[0]!;
         expect(callArgs[2]).toHaveProperty(
           "cacheControl",
           "public,max-age=31536000",
@@ -402,7 +403,7 @@ describe("oss utilities", () => {
         });
 
         expect(mockCreateOrUpdateFile).toHaveBeenCalledTimes(1);
-        const callArgs = mockCreateOrUpdateFile.mock.calls[0][0];
+        const callArgs = mockCreateOrUpdateFile.mock.calls[0]![0];
         expect(callArgs.sha).toBe("abc123sha");
       });
     });
@@ -481,7 +482,7 @@ describe("oss utilities", () => {
           type: "LOCAL",
           config: { rootDir: "/var/www/uploads" },
           key: "2024/06/test.jpg",
-        });
+        } as any);
 
         expect(fs.rm).toHaveBeenCalledWith(
           expect.stringContaining("test.jpg"),
@@ -496,11 +497,12 @@ describe("oss utilities", () => {
           type: "LOCAL",
           config: { rootDir: "/var/www/uploads" },
           key: "2024/06/test.jpg",
-        });
+        } as any);
 
         const calledPath = (fs.rm as any).mock.calls[0]?.[0];
         if (calledPath) {
-          const root = require("path").resolve("/var/www/uploads");
+          const path = await import("path");
+          const root = path.resolve("/var/www/uploads");
           expect(calledPath.startsWith(root)).toBe(true);
         }
       });
@@ -517,7 +519,7 @@ describe("oss utilities", () => {
             bucket: "my-bucket",
           },
           key: "uploads/photo.jpg",
-        });
+        } as any);
 
         expect(mockS3Send).toHaveBeenCalledTimes(1);
       });
@@ -533,7 +535,7 @@ describe("oss utilities", () => {
               bucket: "",
             },
             key: "test.jpg",
-          }),
+          } as any),
         ).rejects.toThrow("missing required fields");
       });
 
@@ -548,7 +550,7 @@ describe("oss utilities", () => {
             basePath: "media",
           },
           key: "2024/photo.jpg",
-        });
+        } as any);
 
         expect(mockS3Send).toHaveBeenCalledTimes(1);
       });
@@ -593,7 +595,7 @@ describe("oss utilities", () => {
             token: "ghp_token",
           },
           key: "uploads/delete-me.txt",
-        });
+        } as any);
 
         expect(mockGetContent).toHaveBeenCalledTimes(1);
         expect(mockDeleteFile).toHaveBeenCalledTimes(1);
@@ -610,7 +612,7 @@ describe("oss utilities", () => {
               token: "",
             },
             key: "file.txt",
-          }),
+          } as any),
         ).rejects.toThrow("missing required fields");
       });
 
@@ -629,7 +631,7 @@ describe("oss utilities", () => {
               token: "ghp_token",
             },
             key: "some-directory",
-          }),
+          } as any),
         ).rejects.toThrow("directory or invalid");
       });
     });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { useConsoleStore } from "@/store/console-store";
 
 describe("console-store", () => {

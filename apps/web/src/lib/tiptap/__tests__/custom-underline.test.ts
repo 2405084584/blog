@@ -1,17 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { CustomUnderline } from "../custom-underline";
+import { CustomUnderline } from "@/lib/tiptap/custom-underline";
 
 // 获取扩展配置中的 markdownTokenizer
 // Tiptap 扩展在创建时会将配置存储在内部
 function getTokenizer() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const config = (CustomUnderline as any).config;
   return config?.markdownTokenizer;
 }
 
 function getRenderMarkdown() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const config = (CustomUnderline as any).config;
   return config?.renderMarkdown;
 }

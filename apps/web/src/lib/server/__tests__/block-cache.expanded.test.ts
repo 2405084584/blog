@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -40,7 +40,7 @@ describe("block-cache expanded", () => {
     it("应返回包含 pageId 的标签", async () => {
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "hero" },
+        block: { id: 1, block: "hero", content: {} },
         pageId: "page-1",
       });
       expect(tags).toContain("pages/page-1");
@@ -49,7 +49,9 @@ describe("block-cache expanded", () => {
 
     it("无 pageId 时不含页面标签", async () => {
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
-      const tags = getBlockCacheTags({ block: { id: 1, block: "hero" } });
+      const tags = getBlockCacheTags({
+        block: { id: 1, block: "hero", content: {} },
+      });
       expect(tags).not.toContain(expect.stringContaining("pages/"));
     });
 
@@ -60,7 +62,7 @@ describe("block-cache expanded", () => {
       });
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "hero" },
+        block: { id: 1, block: "hero", content: {} },
         pageId: "page-1",
       });
       expect(tags).toContain("custom-tag-1");
@@ -103,7 +105,7 @@ describe("block-cache expanded", () => {
       });
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "gallery" },
+        block: { id: 1, block: "gallery", content: {} },
         pageId: "page-1",
       });
       expect(tags).toContain("photos");
@@ -445,8 +447,8 @@ describe("block-cache expanded", () => {
       const tags = buildPageCacheTagsForBlocks({
         pageId: "home",
         blocks: [
-          { id: 1, block: "hero" },
-          { id: 2, block: "text" },
+          { id: 1, block: "hero", content: {} },
+          { id: 2, block: "text", content: {} },
         ],
       });
       expect(tags).toContain("pages/home");
@@ -474,8 +476,8 @@ describe("block-cache expanded", () => {
       const tags = buildPageCacheTagsForBlocks({
         pageId: "home",
         blocks: [
-          { id: 1, block: "text" },
-          { id: 2, block: "text" },
+          { id: 1, block: "text", content: {} },
+          { id: 2, block: "text", content: {} },
         ],
       });
       expect(tags).toContain("posts/list");
@@ -488,7 +490,7 @@ describe("block-cache expanded", () => {
       const { resolveSingleBlockWithCache } = await import(
         "@/lib/server/block-cache"
       );
-      const block = { id: 1, block: "hero" };
+      const block = { id: 1, block: "hero", content: {} };
       const resolved = { id: 1, block: "hero", resolvedData: {} };
       mockResolveSingleBlock.mockResolvedValueOnce(resolved);
       const result = await resolveSingleBlockWithCache({
@@ -504,7 +506,7 @@ describe("block-cache expanded", () => {
       const { resolveSingleBlockWithCache } = await import(
         "@/lib/server/block-cache"
       );
-      const block = { id: 1, block: "hero" };
+      const block = { id: 1, block: "hero", content: {} };
       const resolved = { id: 1, block: "hero", resolvedData: {} };
       mockResolveSingleBlock.mockResolvedValueOnce(resolved);
       const result = await resolveSingleBlockWithCache({
@@ -518,7 +520,7 @@ describe("block-cache expanded", () => {
       const { resolveSingleBlockWithCache } = await import(
         "@/lib/server/block-cache"
       );
-      const block = { id: 1, block: "hero" };
+      const block = { id: 1, block: "hero", content: {} };
       const context = { slug: "test", pageId: "home" };
       mockResolveSingleBlock.mockResolvedValueOnce(block);
       await resolveSingleBlockWithCache({

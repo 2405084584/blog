@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { resolveApiResponse } from "../run-with-auth";
+import { resolveApiResponse } from "@/lib/client/run-with-auth";
 
 // Mock server actions
 vi.mock("@/actions/auth", () => ({
@@ -10,14 +10,14 @@ vi.mock("@/actions/auth", () => ({
 describe("resolveApiResponse", () => {
   it("应直接返回非 Response 对象", async () => {
     const apiResponse = { success: true, data: { id: 1 } };
-    const result = await resolveApiResponse(apiResponse);
+    const result = await resolveApiResponse(apiResponse as any);
     expect(result).toBe(apiResponse);
   });
 
   it("应从 Response 对象中解析 JSON", async () => {
     const apiResponse = { success: true, data: { id: 1 } };
     const response = new Response(JSON.stringify(apiResponse));
-    const result = await resolveApiResponse(response);
+    const result = await resolveApiResponse(response as any);
     expect(result).toEqual(apiResponse);
   });
 
@@ -29,7 +29,7 @@ describe("resolveApiResponse", () => {
 
     // clone 后解析无效 JSON
     const badResponse = new Response("{invalid json");
-    const result = await resolveApiResponse(badResponse);
+    const result = await resolveApiResponse(badResponse as any);
     expect(result).toBeUndefined();
   });
 
@@ -38,7 +38,7 @@ describe("resolveApiResponse", () => {
       success: false,
       error: { code: "UNAUTHORIZED", message: "未授权" },
     };
-    const result = await resolveApiResponse(errorResponse);
+    const result = await resolveApiResponse(errorResponse as any);
     expect(result).toEqual(errorResponse);
   });
 
@@ -51,7 +51,7 @@ describe("resolveApiResponse", () => {
       },
     };
     const response = new Response(JSON.stringify(complexResponse));
-    const result = await resolveApiResponse(response);
+    const result = await resolveApiResponse(response as any);
     expect(result).toEqual(complexResponse);
   });
 });

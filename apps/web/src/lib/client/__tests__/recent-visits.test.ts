@@ -6,7 +6,7 @@ import {
   RECENT_VISITS_EVENT,
   RECENT_VISITS_STORAGE_KEY,
   recordRecentVisit,
-} from "../recent-visits";
+} from "@/lib/client/recent-visits";
 
 describe("recent-visits", () => {
   beforeEach(() => {
@@ -29,8 +29,8 @@ describe("recent-visits", () => {
       localStorage.setItem(RECENT_VISITS_STORAGE_KEY, JSON.stringify(items));
       const result = readRecentVisits();
       expect(result).toHaveLength(1);
-      expect(result[0].path).toBe("/post/hello");
-      expect(result[0].title).toBe("Hello");
+      expect(result[0]!.path).toBe("/post/hello");
+      expect(result[0]!.title).toBe("Hello");
     });
 
     it("应按访问时间降序排序", () => {
@@ -40,8 +40,8 @@ describe("recent-visits", () => {
       ];
       localStorage.setItem(RECENT_VISITS_STORAGE_KEY, JSON.stringify(items));
       const result = readRecentVisits();
-      expect(result[0].path).toBe("/b");
-      expect(result[1].path).toBe("/a");
+      expect(result[0]!.path).toBe("/b");
+      expect(result[1]!.path).toBe("/a");
     });
 
     it("应过滤无效数据", () => {
@@ -54,7 +54,7 @@ describe("recent-visits", () => {
       localStorage.setItem(RECENT_VISITS_STORAGE_KEY, JSON.stringify(items));
       const result = readRecentVisits();
       expect(result).toHaveLength(1);
-      expect(result[0].path).toBe("/valid");
+      expect(result[0]!.path).toBe("/valid");
     });
 
     it("损坏的 JSON 应返回空数组", () => {
@@ -72,7 +72,7 @@ describe("recent-visits", () => {
       ];
       localStorage.setItem(RECENT_VISITS_STORAGE_KEY, JSON.stringify(items));
       const result = readRecentVisits();
-      expect(result[0].path).toBe("/post/hello");
+      expect(result[0]!.path).toBe("/post/hello");
     });
 
     it("过长的标题应被截断", () => {
@@ -82,8 +82,8 @@ describe("recent-visits", () => {
       ];
       localStorage.setItem(RECENT_VISITS_STORAGE_KEY, JSON.stringify(items));
       const result = readRecentVisits();
-      expect(result[0].title.length).toBeLessThanOrEqual(83); // 80 + "..."
-      expect(result[0].title).toContain("...");
+      expect(result[0]!.title.length).toBeLessThanOrEqual(83); // 80 + "..."
+      expect(result[0]!.title).toContain("...");
     });
 
     it("空标题应使用路径作为标题", () => {
@@ -92,7 +92,7 @@ describe("recent-visits", () => {
       ];
       localStorage.setItem(RECENT_VISITS_STORAGE_KEY, JSON.stringify(items));
       const result = readRecentVisits();
-      expect(result[0].title).toBe("/some/path");
+      expect(result[0]!.title).toBe("/some/path");
     });
   });
 
@@ -101,8 +101,8 @@ describe("recent-visits", () => {
       recordRecentVisit({ path: "/post/hello", title: "Hello" });
       const result = readRecentVisits();
       expect(result).toHaveLength(1);
-      expect(result[0].path).toBe("/post/hello");
-      expect(result[0].title).toBe("Hello");
+      expect(result[0]!.path).toBe("/post/hello");
+      expect(result[0]!.title).toBe("Hello");
     });
 
     it("应将最新记录放在最前面", () => {
@@ -117,8 +117,8 @@ describe("recent-visits", () => {
         visitedAt: "2024-06-01T00:00:00Z",
       });
       const result = readRecentVisits();
-      expect(result[0].path).toBe("/second");
-      expect(result[1].path).toBe("/first");
+      expect(result[0]!.path).toBe("/second");
+      expect(result[1]!.path).toBe("/first");
     });
 
     it("不应记录被排除的路径（/login）", () => {
@@ -161,7 +161,7 @@ describe("recent-visits", () => {
       recordRecentVisit({ path: "/post/hello?page=1" });
       const result = readRecentVisits();
       expect(result).toHaveLength(1);
-      expect(result[0].path).toBe("/post/hello?page=1");
+      expect(result[0]!.path).toBe("/post/hello?page=1");
     });
   });
 
@@ -194,8 +194,8 @@ describe("recent-visits", () => {
       recordRecentVisit({ path: "/post/test" });
 
       expect(handler).toHaveBeenCalledTimes(1);
-      const event = handler.mock.calls[0][0] as CustomEvent;
-      expect(event.detail.count).toBe(1);
+      const event = handler.mock.calls[0]![0] as CustomEvent;
+      expect((event as any).detail.count).toBe(1);
       expect(event.detail.items).toHaveLength(1);
 
       window.removeEventListener(RECENT_VISITS_EVENT, handler);

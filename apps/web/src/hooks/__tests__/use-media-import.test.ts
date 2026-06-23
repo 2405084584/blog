@@ -60,9 +60,11 @@ describe("useMediaImport", () => {
 
       expect(parseResult).toBe(true);
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].url).toBe("https://example.com/image.png");
-      expect(result.current.items[0].fileName).toBe("image.png");
-      expect(result.current.items[0].status).toBe("pending");
+      expect(result.current.items[0]!.url).toBe(
+        "https://example.com/image.png",
+      );
+      expect(result.current.items[0]!.fileName).toBe("image.png");
+      expect(result.current.items[0]!.status).toBe("pending");
       // parseUrls should clear the input
       expect(result.current.urlInput).toBe("");
     });
@@ -99,7 +101,9 @@ describe("useMediaImport", () => {
 
       expect(parseResult).toBe(true);
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].url).toBe("https://example.com/valid.png");
+      expect(result.current.items[0]!.url).toBe(
+        "https://example.com/valid.png",
+      );
     });
 
     it("去重：重复 URL 不会添加", () => {
@@ -186,7 +190,7 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      expect(result.current.items[0].fileName).toBe("photo.jpg");
+      expect(result.current.items[0]!.fileName).toBe("photo.jpg");
     });
 
     it("处理 URL 编码的文件名", () => {
@@ -202,7 +206,7 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      expect(result.current.items[0].fileName).toBe("图片.png");
+      expect(result.current.items[0]!.fileName).toBe("图片.png");
     });
 
     it("URL 无文件名时使用默认名", () => {
@@ -216,7 +220,7 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      expect(result.current.items[0].fileName).toBe("未命名文件");
+      expect(result.current.items[0]!.fileName).toBe("未命名文件");
     });
   });
 
@@ -290,7 +294,7 @@ describe("useMediaImport", () => {
       });
 
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].url).toBe(
+      expect(result.current.items[0]!.url).toBe(
         "https://example.com/pasted.png",
       );
     });
@@ -338,7 +342,7 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      const itemId = result.current.items[0].id;
+      const itemId = result.current.items[0]!.id;
 
       act(() => {
         result.current.removeItem(itemId);
@@ -359,14 +363,14 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      const itemId = result.current.items[0].id;
+      const itemId = result.current.items[0]!.id;
 
       act(() => {
         result.current.removeItem(itemId);
       });
 
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].url).toBe("https://example.com/b.png");
+      expect(result.current.items[0]!.url).toBe("https://example.com/b.png");
     });
   });
 
@@ -381,13 +385,13 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      const itemId = result.current.items[0].id;
+      const itemId = result.current.items[0]!.id;
 
       act(() => {
         result.current.updateItemFileName(itemId, "custom-name.png");
       });
 
-      expect(result.current.items[0].customFileName).toBe("custom-name.png");
+      expect(result.current.items[0]!.customFileName).toBe("custom-name.png");
     });
   });
 
@@ -403,7 +407,7 @@ describe("useMediaImport", () => {
       });
 
       const displayName = result.current.getDisplayFileName(
-        result.current.items[0],
+        result.current.items[0]!,
       );
       expect(displayName).toBe("image.png");
     });
@@ -418,13 +422,13 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      const itemId = result.current.items[0].id;
+      const itemId = result.current.items[0]!.id;
       act(() => {
         result.current.updateItemFileName(itemId, "renamed.png");
       });
 
       const displayName = result.current.getDisplayFileName(
-        result.current.items[0],
+        result.current.items[0]!,
       );
       expect(displayName).toBe("renamed.png");
     });
@@ -441,13 +445,13 @@ describe("useMediaImport", () => {
         result.current.parseUrls();
       });
 
-      const itemId = result.current.items[0].id;
+      const itemId = result.current.items[0]!.id;
 
       act(() => {
         result.current.handleImageError(itemId);
       });
 
-      expect(result.current.items[0].imageLoadError).toBe(true);
+      expect(result.current.items[0]!.imageLoadError).toBe(true);
     });
   });
 
@@ -491,7 +495,7 @@ describe("useMediaImport", () => {
       });
 
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].url).toBe("https://example.com/test.png");
+      expect(result.current.items[0]!.url).toBe("https://example.com/test.png");
     });
   });
 
@@ -533,13 +537,13 @@ describe("useMediaImport", () => {
       let importResult: { success: boolean; data?: unknown };
       await act(async () => {
         importResult = await result.current.importSingleItem(
-          result.current.items[0],
+          result.current.items[0]!,
         );
       });
 
       expect(importResult!.success).toBe(true);
-      expect(result.current.items[0].status).toBe("success");
-      expect(result.current.items[0].result).toEqual(mockResult.data);
+      expect(result.current.items[0]!.status).toBe("success");
+      expect(result.current.items[0]!.result).toEqual(mockResult.data);
     });
 
     it("导入失败设置错误状态", async () => {
@@ -563,13 +567,13 @@ describe("useMediaImport", () => {
       let importResult: { success: boolean; data?: unknown };
       await act(async () => {
         importResult = await result.current.importSingleItem(
-          result.current.items[0],
+          result.current.items[0]!,
         );
       });
 
       expect(importResult!.success).toBe(false);
-      expect(result.current.items[0].status).toBe("error");
-      expect(result.current.items[0].error).toBe("文件不存在");
+      expect(result.current.items[0]!.status).toBe("error");
+      expect(result.current.items[0]!.error).toBe("文件不存在");
     });
 
     it("网络错误时设置错误状态", async () => {
@@ -591,12 +595,12 @@ describe("useMediaImport", () => {
       let importResult: { success: boolean; data?: unknown };
       await act(async () => {
         importResult = await result.current.importSingleItem(
-          result.current.items[0],
+          result.current.items[0]!,
         );
       });
 
       expect(importResult!.success).toBe(false);
-      expect(result.current.items[0].status).toBe("error");
+      expect(result.current.items[0]!.status).toBe("error");
     });
 
     it("record 模式使用 original 处理模式", async () => {
@@ -623,11 +627,11 @@ describe("useMediaImport", () => {
       });
 
       await act(async () => {
-        await result.current.importSingleItem(result.current.items[0]);
+        await result.current.importSingleItem(result.current.items[0]!);
       });
 
       // Verify fetch was called with the right formData
-      const [, fetchOptions] = mockFetch.mock.calls[0];
+      const [, fetchOptions] = mockFetch.mock.calls[0]!;
       const formData = fetchOptions.body as FormData;
       expect(formData.get("mode")).toBe("original");
     });
@@ -652,10 +656,10 @@ describe("useMediaImport", () => {
       });
 
       await act(async () => {
-        await result.current.importSingleItem(result.current.items[0]);
+        await result.current.importSingleItem(result.current.items[0]!);
       });
 
-      const [, fetchOptions] = mockFetch.mock.calls[0];
+      const [, fetchOptions] = mockFetch.mock.calls[0]!;
       const formData = fetchOptions.body as FormData;
       expect(formData.get("displayName")).toBe("custom.png");
     });
@@ -681,10 +685,10 @@ describe("useMediaImport", () => {
       });
 
       await act(async () => {
-        await result.current.importSingleItem(result.current.items[0]);
+        await result.current.importSingleItem(result.current.items[0]!);
       });
 
-      const [, fetchOptions] = mockFetch.mock.calls[0];
+      const [, fetchOptions] = mockFetch.mock.calls[0]!;
       const formData = fetchOptions.body as FormData;
       expect(formData.get("folderId")).toBe("42");
     });
@@ -716,9 +720,9 @@ describe("useMediaImport", () => {
 
       // First import fails
       await act(async () => {
-        await result.current.importSingleItem(result.current.items[0]);
+        await result.current.importSingleItem(result.current.items[0]!);
       });
-      expect(result.current.items[0].status).toBe("error");
+      expect(result.current.items[0]!.status).toBe("error");
 
       // Retry
       let retryResult: { success: boolean; data?: unknown };
@@ -727,7 +731,7 @@ describe("useMediaImport", () => {
       });
 
       expect(retryResult!.success).toBe(true);
-      expect(result.current.items[0].status).toBe("success");
+      expect(result.current.items[0]!.status).toBe("success");
     });
 
     it("重试不存在的项返回失败", async () => {

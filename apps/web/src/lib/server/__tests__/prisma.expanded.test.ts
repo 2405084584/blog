@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock server-only
 vi.mock("server-only", () => ({}));
@@ -28,7 +28,7 @@ class MockPrismaClient {
   $queryRawUnsafe = vi.fn().mockResolvedValue([]);
   $executeRaw = vi.fn().mockResolvedValue(0);
   $executeRawUnsafe = vi.fn().mockResolvedValue(0);
-  $transaction = vi.fn().mockImplementation(async (fn: Function) => fn({}));
+  $transaction = vi.fn().mockImplementation(async (fn: any) => fn({}));
   $extends = vi.fn().mockReturnThis();
   $on = vi.fn();
   $use = vi.fn();
@@ -79,7 +79,7 @@ describe("prisma expanded", () => {
 
     it("$transaction 应支持函数参数", async () => {
       const prisma = (await import("@/lib/server/prisma")).default;
-      const result = await (prisma as any).$transaction(async (tx: any) => {
+      const result = await (prisma as any).$transaction(async (_tx: any) => {
         return "transaction-result";
       });
       expect(result).toBe("transaction-result");

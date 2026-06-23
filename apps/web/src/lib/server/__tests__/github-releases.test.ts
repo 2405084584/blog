@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  type GithubRelease,
-  fetchGithubReleases,
-} from "@/lib/server/github-releases";
+import { fetchGithubReleases } from "@/lib/server/github-releases";
 
 // ============================================================================
 // 测试数据工厂

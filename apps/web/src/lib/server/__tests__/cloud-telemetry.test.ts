@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -23,7 +23,7 @@ vi.mock("@/lib/server/config-cache", () => ({
 }));
 
 // Mock prisma
-const mockFindFirst = vi.fn();
+const _mockFindFirst = vi.fn();
 vi.mock("@/lib/server/prisma", () => ({
   default: {
     cronHistory: { findFirst: vi.fn().mockResolvedValue(null) },

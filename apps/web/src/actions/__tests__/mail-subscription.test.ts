@@ -210,7 +210,7 @@ describe("mail-subscription actions", () => {
 
       const result = await getMailSubscriptionList();
       expect(result.success).toBe(true);
-      expect(result.data.items).toHaveLength(0);
+      expect(result.data!.items).toHaveLength(0);
     });
   });
 
@@ -249,7 +249,7 @@ describe("mail-subscription actions", () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await subscribeMail({
         email: "test@example.com",
-        captchaToken: "valid-token",
+        captcha_token: "valid-token",
       });
       expect(result.success).toBe(false);
     });
@@ -258,7 +258,7 @@ describe("mail-subscription actions", () => {
       mockVerifyCaptchaToken.mockResolvedValueOnce({ success: false });
       const result = await subscribeMail({
         email: "test@example.com",
-        captchaToken: "invalid-token",
+        captcha_token: "invalid-token",
       });
       expect(result.success).toBe(false);
     });
@@ -285,7 +285,7 @@ describe("mail-subscription actions", () => {
 
       const result = await getMailSubscriptionList();
       expect(result.success).toBe(true);
-      expect(result.data.items).toHaveLength(0);
+      expect(result.data!.items).toHaveLength(0);
     });
   });
 

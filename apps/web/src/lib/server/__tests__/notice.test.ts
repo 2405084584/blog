@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -172,7 +172,7 @@ describe("notice", () => {
     it("应支持自定义通知类型", async () => {
       const { sendNotice } = await import("@/lib/server/notice");
       await sendNotice(1, "Title", "Content", undefined, {
-        type: "new_comment",
+        type: "new_comment" as any,
       });
 
       expect(mockNoticeCreate).toHaveBeenCalled();
@@ -224,7 +224,7 @@ describe("notice", () => {
 
       // 验证 publishNoticeToUser 被调用
       expect(publishNoticeToUser).toHaveBeenCalled();
-      const callArgs = vi.mocked(publishNoticeToUser).mock.calls[0];
+      const callArgs = vi.mocked(publishNoticeToUser).mock.calls[0]!;
       expect(callArgs[0]).toBe(1);
       expect(callArgs[1]).toHaveProperty("type", "new_notice");
     });

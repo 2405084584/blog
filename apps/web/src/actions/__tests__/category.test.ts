@@ -131,15 +131,15 @@ vi.mock("next/server", () => ({
 // ============================================================================
 
 import {
-  getCategoriesList,
-  getCategoryDetail,
   createCategory,
-  updateCategory,
   deleteCategories,
+  getCategoriesDistribution,
+  getCategoriesList,
+  getCategoriesTree,
+  getCategoryDetail,
   moveCategories,
   searchCategories,
-  getCategoriesDistribution,
-  getCategoriesTree,
+  updateCategory,
 } from "@/actions/category";
 
 // ============================================================================
@@ -147,7 +147,6 @@ import {
 // ============================================================================
 
 const ADMIN_USER = { uid: 1, username: "admin", role: "ADMIN" as const };
-const EDITOR_USER = { uid: 2, username: "editor", role: "EDITOR" as const };
 
 const CATEGORY_RECORD = {
   id: 1,
@@ -201,7 +200,13 @@ describe("category actions", () => {
       mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindMany.mockResolvedValue([CATEGORY_RECORD]);
       const result = await getCategoriesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -210,7 +215,13 @@ describe("category actions", () => {
     it("未认证时返回未授权", async () => {
       mockAuthFailure();
       const result = await getCategoriesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -219,7 +230,13 @@ describe("category actions", () => {
     it("速率限制时返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCategoriesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -257,7 +274,7 @@ describe("category actions", () => {
 
   describe("createCategory", () => {
     it("成功创建分类", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: false,
         nameExists: false,
@@ -296,7 +313,7 @@ describe("category actions", () => {
     });
 
     it("名称重复时返回错误", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: false,
         nameExists: true,
@@ -315,13 +332,13 @@ describe("category actions", () => {
 
   describe("updateCategory", () => {
     it("成功更新分类", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindUnique.mockResolvedValue(CATEGORY_RECORD);
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: false,
         nameExists: false,
       });
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           category: {
             update: vi.fn().mockResolvedValue({
@@ -348,7 +365,7 @@ describe("category actions", () => {
     });
 
     it("分类不存在时返回 404", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindUnique.mockResolvedValue(null);
       const result = await updateCategory(
         {
@@ -370,7 +387,7 @@ describe("category actions", () => {
         .mockResolvedValueOnce([{ fullSlug: "tech" }]); // categories to delete
       mockGetAllDescendantIds.mockResolvedValue([]);
       mockPrismaPostFindMany.mockResolvedValue([]);
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           category: {
             deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -399,7 +416,7 @@ describe("category actions", () => {
 
   describe("moveCategories", () => {
     it("成功移动分类", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindMany.mockResolvedValue([]);
       mockPrismaCategoryFindUnique.mockResolvedValue({
         id: 2,
@@ -414,7 +431,7 @@ describe("category actions", () => {
         slugExists: false,
         nameExists: false,
       });
-      mockPrismaTransaction.mockImplementation(async (fn: Function) =>
+      mockPrismaTransaction.mockImplementation(async (fn: any) =>
         fn({
           category: {
             findMany: vi.fn().mockResolvedValue([
@@ -456,7 +473,7 @@ describe("category actions", () => {
         new Map([[1, [{ id: 1, slug: "tech", name: "技术" }]]]),
       );
       const result = await searchCategories(
-        { access_token: "token", query: "技术" },
+        { access_token: "token", query: "技术", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -471,7 +488,7 @@ describe("category actions", () => {
       ]);
       mockCountCategoryPosts.mockResolvedValue(10);
       const result = await getCategoriesDistribution(
-        { access_token: "token" },
+        { access_token: "token", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -506,7 +523,7 @@ describe("category actions", () => {
 
   describe("createCategory 补充测试", () => {
     it("通过 parentSlug 查找父分类", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindFirst.mockResolvedValue({ id: 10 });
       mockPrismaCategoryFindUnique.mockResolvedValue({ id: 10 });
       mockCheckCategoryUniqueness.mockResolvedValue({
@@ -547,7 +564,7 @@ describe("category actions", () => {
     });
 
     it("parentSlug 对应分类不存在时返回失败", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindFirst.mockResolvedValue(null);
       const result = await createCategory(
         {
@@ -561,7 +578,7 @@ describe("category actions", () => {
     });
 
     it("指定 parentId 但父分类不存在时返回失败", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: false,
         nameExists: false,
@@ -580,7 +597,7 @@ describe("category actions", () => {
     });
 
     it("未提供 slug 时自动生成", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockSlugify.mockResolvedValue("auto-slug");
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: false,
@@ -619,7 +636,7 @@ describe("category actions", () => {
     });
 
     it("名称重复时返回失败", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: false,
         nameExists: true,
@@ -669,7 +686,7 @@ describe("category actions", () => {
     });
 
     it("更改 slug 时应验证唯一性", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindUnique.mockResolvedValue(CATEGORY_RECORD);
       mockCheckCategoryUniqueness.mockResolvedValue({
         slugExists: true,
@@ -708,7 +725,7 @@ describe("category actions", () => {
     });
 
     it("分类不存在时应返回 404", async () => {
-      mockAuthSuccess(EDITOR_USER);
+      mockAuthSuccess(ADMIN_USER);
       mockPrismaCategoryFindUnique.mockResolvedValue(null);
       const result = await deleteCategories(
         { access_token: "token", ids: [999] },
@@ -722,7 +739,13 @@ describe("category actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCategoriesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -733,7 +756,7 @@ describe("category actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCategoryDetail(
-        { access_token: "token", id: 1 },
+        { access_token: "token", slug: "test" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -742,7 +765,7 @@ describe("category actions", () => {
     it("非管理员/编辑应返回未授权", async () => {
       mockAuthFailure();
       const result = await getCategoryDetail(
-        { access_token: "token", id: 1 },
+        { access_token: "token", slug: "test" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -755,7 +778,13 @@ describe("category actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCategoriesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -765,7 +794,13 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getCategoriesList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -775,7 +810,14 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockResolvedValue([]);
       const result = await getCategoriesList(
-        { access_token: "token", search: "test" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+          search: "test",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -785,7 +827,14 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockResolvedValue([]);
       const result = await getCategoriesList(
-        { access_token: "token", hasZeroPosts: true },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
+          hasZeroPosts: true,
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -797,6 +846,10 @@ describe("category actions", () => {
       const result = await getCategoriesList(
         {
           access_token: "token",
+          page: 1,
+          pageSize: 25,
+          sortBy: "totalPostCount",
+          sortOrder: "desc",
           createdAtStart: "2025-01-01",
           createdAtEnd: "2025-12-31",
         },
@@ -810,7 +863,7 @@ describe("category actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await moveCategories(
-        { access_token: "token", ids: [1] },
+        { access_token: "token", ids: [1], targetParentId: null },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -819,7 +872,7 @@ describe("category actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthFailure();
       const result = await moveCategories(
-        { access_token: "token", ids: [1] },
+        { access_token: "token", ids: [1], targetParentId: null },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -829,7 +882,7 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
       const result = await moveCategories(
-        { access_token: "token", ids: [1] },
+        { access_token: "token", ids: [1], targetParentId: null },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -840,7 +893,7 @@ describe("category actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await searchCategories(
-        { access_token: "token", query: "test" },
+        { access_token: "token", query: "test", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -849,7 +902,7 @@ describe("category actions", () => {
     it("非管理员/编辑/作者应返回未授权", async () => {
       mockAuthFailure();
       const result = await searchCategories(
-        { access_token: "token", query: "test" },
+        { access_token: "token", query: "test", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -859,7 +912,7 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
       const result = await searchCategories(
-        { access_token: "token", query: "test" },
+        { access_token: "token", query: "test", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -869,7 +922,7 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockResolvedValue([]);
       const result = await searchCategories(
-        { access_token: "token", query: "nonexistent" },
+        { access_token: "token", query: "nonexistent", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -880,7 +933,7 @@ describe("category actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCategoriesDistribution(
-        { access_token: "token" },
+        { access_token: "token", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -889,7 +942,7 @@ describe("category actions", () => {
     it("非管理员/编辑/作者应返回未授权", async () => {
       mockAuthFailure();
       const result = await getCategoriesDistribution(
-        { access_token: "token" },
+        { access_token: "token", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -899,7 +952,7 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getCategoriesDistribution(
-        { access_token: "token" },
+        { access_token: "token", limit: 10 },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -943,7 +996,7 @@ describe("category actions", () => {
       mockAuthSuccess();
       mockPrismaCategoryFindUnique.mockRejectedValue(new Error("DB error"));
       const result = await updateCategory(
-        { access_token: "token", id: 1, name: "Updated" },
+        { access_token: "token", id: 1, newName: "Updated" },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);

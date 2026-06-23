@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -27,7 +27,7 @@ class MockPrismaClient {
   $queryRawUnsafe = vi.fn().mockResolvedValue([]);
   $executeRaw = vi.fn().mockResolvedValue(0);
   $executeRawUnsafe = vi.fn().mockResolvedValue(0);
-  $transaction = vi.fn().mockImplementation(async (fn: Function) => fn({}));
+  $transaction = vi.fn().mockImplementation(async (fn: any) => fn({}));
   $extends = vi.fn().mockReturnThis();
   $on = vi.fn();
   $use = vi.fn();
@@ -130,14 +130,14 @@ describe("prisma", () => {
   describe("全局单例", () => {
     it("开发环境应保存到 globalThis", async () => {
       const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
+      (process.env as any).NODE_ENV = "development";
 
       // 需要重新导入模块以测试全局行为
       // 由于模块已缓存，这里验证实例存在
       const prisma = (await import("@/lib/server/prisma")).default;
       expect(prisma).toBeDefined();
 
-      process.env.NODE_ENV = originalNodeEnv;
+      (process.env as any).NODE_ENV = originalNodeEnv;
     });
   });
 

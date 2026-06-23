@@ -13,7 +13,6 @@ vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn: (...args: unknown[]) => Promise<unknown>) => fn),
 }));
 
-import prisma from "@/lib/server/prisma";
 import {
   getActiveMenus,
   getActiveMenusByCategory,
@@ -21,6 +20,7 @@ import {
   getMenus,
   getMenusByCategory,
 } from "@/lib/server/menu-cache";
+import prisma from "@/lib/server/prisma";
 
 const mockPrisma = vi.mocked(prisma);
 
@@ -67,13 +67,13 @@ describe("menu-cache", () => {
           category: "MAIN",
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenus();
 
       expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("Home");
-      expect(result[1].name).toBe("About");
+      expect(result[0]!.name).toBe("Home");
+      expect(result[1]!.name).toBe("About");
       expect(mockPrisma.menu.findMany).toHaveBeenCalledWith({
         orderBy: [{ category: "asc" }, { order: "asc" }, { createdAt: "asc" }],
         include: { page: true },
@@ -81,7 +81,7 @@ describe("menu-cache", () => {
     });
 
     it("returns empty array when database query fails", async () => {
-      mockPrisma.menu.findMany.mockRejectedValue(
+      (mockPrisma.menu.findMany as any).mockRejectedValue(
         new Error("DB connection failed"),
       );
 
@@ -113,35 +113,35 @@ describe("menu-cache", () => {
           },
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenus();
 
-      expect(result[0].page).not.toBeNull();
-      expect(result[0].page?.title).toBe("Blog Page");
-      expect(result[0].page?.slug).toBe("/blog");
-      expect(result[0].page?.content).toBe("Blog content");
+      expect(result[0]!.page).not.toBeNull();
+      expect(result[0]!.page?.title).toBe("Blog Page");
+      expect(result[0]!.page?.slug).toBe("/blog");
+      expect(result[0]!.page?.content).toBe("Blog content");
     });
 
     it("sets page to null when menu has no associated page", async () => {
       const dbMenus = [createMockDbMenu({ page: null })];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenus();
 
-      expect(result[0].page).toBeNull();
+      expect(result[0]!.page).toBeNull();
     });
 
     it("returns correct date objects", async () => {
       const createdAt = new Date("2024-03-15T10:00:00Z");
       const updatedAt = new Date("2024-06-20T15:30:00Z");
       const dbMenus = [createMockDbMenu({ createdAt, updatedAt })];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenus();
 
-      expect(result[0].createdAt).toEqual(createdAt);
-      expect(result[0].updatedAt).toEqual(updatedAt);
+      expect(result[0]!.createdAt).toEqual(createdAt);
+      expect(result[0]!.updatedAt).toEqual(updatedAt);
     });
   });
 
@@ -156,7 +156,7 @@ describe("menu-cache", () => {
         createMockDbMenu({ id: "3", name: "About", category: "MAIN" }),
         createMockDbMenu({ id: "4", name: "External", category: "OUTSITE" }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenusByCategory("MAIN");
 
@@ -169,19 +169,19 @@ describe("menu-cache", () => {
         createMockDbMenu({ id: "1", name: "Home", category: "MAIN" }),
         createMockDbMenu({ id: "2", name: "Settings", category: "COMMON" }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenusByCategory("COMMON");
 
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Settings");
+      expect(result[0]!.name).toBe("Settings");
     });
 
     it("returns empty array when no menus match category", async () => {
       const dbMenus = [
         createMockDbMenu({ id: "1", name: "Home", category: "MAIN" }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getMenusByCategory("OUTSITE");
 
@@ -199,7 +199,7 @@ describe("menu-cache", () => {
         createMockDbMenu({ id: "2", name: "Hidden", status: "SUSPENDED" }),
         createMockDbMenu({ id: "3", name: "Also Visible", status: "ACTIVE" }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenus();
 
@@ -211,7 +211,7 @@ describe("menu-cache", () => {
       const dbMenus = [
         createMockDbMenu({ id: "1", name: "Hidden", status: "SUSPENDED" }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenus();
 
@@ -250,7 +250,7 @@ describe("menu-cache", () => {
           status: "ACTIVE",
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenusByCategory("MAIN");
 
@@ -269,7 +269,7 @@ describe("menu-cache", () => {
           status: "SUSPENDED",
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenusByCategory("MAIN");
 
@@ -320,20 +320,20 @@ describe("menu-cache", () => {
           page: null,
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenusForClient();
 
       expect(result).toHaveLength(2);
 
       // 带页面的菜单项应只包含 slug
-      expect(result[0].page).toEqual({ slug: "/blog" });
+      expect(result[0]!.page).toEqual({ slug: "/blog" });
       // 不应包含 title, content 等
-      expect(result[0].page).not.toHaveProperty("title");
-      expect(result[0].page).not.toHaveProperty("content");
+      expect(result[0]!.page).not.toHaveProperty("title");
+      expect(result[0]!.page).not.toHaveProperty("content");
 
       // 不带页面的菜单项应返回 null
-      expect(result[1].page).toBeNull();
+      expect(result[1]!.page).toBeNull();
 
       // 应该包含基本字段
       expect(result[0]).toHaveProperty("id");
@@ -358,17 +358,17 @@ describe("menu-cache", () => {
           status: "SUSPENDED",
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenusForClient();
 
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Active");
+      expect(result[0]!.name).toBe("Active");
     });
 
     it("returns empty array when no active menus exist", async () => {
       const dbMenus = [createMockDbMenu({ id: "1", status: "SUSPENDED" })];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenusForClient();
 
@@ -398,11 +398,11 @@ describe("menu-cache", () => {
           },
         }),
       ];
-      mockPrisma.menu.findMany.mockResolvedValue(dbMenus);
+      (mockPrisma.menu.findMany as any).mockResolvedValue(dbMenus);
 
       const result = await getActiveMenusForClient();
 
-      expect(result[0].page).toEqual({ slug: "/minimal" });
+      expect(result[0]!.page).toEqual({ slug: "/minimal" });
     });
   });
 
@@ -410,20 +410,20 @@ describe("menu-cache", () => {
 
   describe("getMenusByCategory 补充测试", () => {
     it("返回 FOOTER 分类菜单", async () => {
-      mockPrisma.menu.findMany.mockResolvedValue([
+      (mockPrisma.menu.findMany as any).mockResolvedValue([
         createMockDbMenu({ id: "1", name: "Footer Menu", category: "FOOTER" }),
       ]);
 
-      const result = await getMenusByCategory("FOOTER");
+      const result = await getMenusByCategory("FOOTER" as any);
 
       expect(result).toHaveLength(1);
-      expect(result[0].category).toBe("FOOTER");
+      expect(result[0]!.category).toBe("FOOTER");
     });
   });
 
   describe("getActiveMenus 补充测试", () => {
     it("混合状态时只返回 ACTIVE", async () => {
-      mockPrisma.menu.findMany.mockResolvedValue([
+      (mockPrisma.menu.findMany as any).mockResolvedValue([
         createMockDbMenu({ id: "1", name: "Active", status: "ACTIVE" }),
         createMockDbMenu({ id: "2", name: "Suspended", status: "SUSPENDED" }),
         createMockDbMenu({ id: "3", name: "Active2", status: "ACTIVE" }),

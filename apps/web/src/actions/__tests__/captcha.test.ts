@@ -59,8 +59,8 @@ describe("captcha actions", () => {
       const { createChallenge } = await import("@/actions/captcha");
       const result = await createChallenge();
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockData);
+      expect((result as any).success).toBe(true);
+      expect((result as any).data).toEqual(mockData);
       expect(mockCreateChallenge).toHaveBeenCalledWith({
         challengeCount: 50,
         challengeSize: 32,
@@ -77,9 +77,9 @@ describe("captcha actions", () => {
       const result = await createChallenge({ environment: "serverless" });
 
       // serverless 模式返回 NextResponse 对象，带 status 属性
-      expect(result.status).toBe(200);
-      expect(result.body.success).toBe(true);
-      expect(result.body.data).toEqual(mockData);
+      expect((result as any).status).toBe(200);
+      expect((result as any).body.success).toBe(true);
+      expect((result as any).body.data).toEqual(mockData);
     });
 
     it("速率限制触发时返回 429", async () => {
@@ -88,8 +88,8 @@ describe("captcha actions", () => {
       const { createChallenge } = await import("@/actions/captcha");
       const result = await createChallenge();
 
-      expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect((result as any).success).toBe(false);
+      expect((result as any).error.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("cap.createChallenge 抛出异常时返回 500", async () => {
@@ -98,8 +98,8 @@ describe("captcha actions", () => {
       const { createChallenge } = await import("@/actions/captcha");
       const result = await createChallenge();
 
-      expect(result.success).toBe(false);
-      expect(result.message).toBe("创建验证码失败，请稍后重试");
+      expect((result as any).success).toBe(false);
+      expect((result as any).message).toBe("创建验证码失败，请稍后重试");
     });
   });
 
@@ -119,8 +119,8 @@ describe("captcha actions", () => {
       const { verifyChallenge } = await import("@/actions/captcha");
       const result = await verifyChallenge(validParams);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockResult);
+      expect((result as any).success).toBe(true);
+      expect((result as any).data).toEqual(mockResult);
       expect(mockRedeemChallenge).toHaveBeenCalledWith({
         token: "test-token",
         solutions: [1, 2, 3],
@@ -136,8 +136,8 @@ describe("captcha actions", () => {
         environment: "serverless",
       });
 
-      expect(result.status).toBe(200);
-      expect(result.body.success).toBe(true);
+      expect((result as any).status).toBe(200);
+      expect((result as any).body.success).toBe(true);
     });
 
     it("速率限制触发时返回 429", async () => {
@@ -146,15 +146,15 @@ describe("captcha actions", () => {
       const { verifyChallenge } = await import("@/actions/captcha");
       const result = await verifyChallenge(validParams);
 
-      expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect((result as any).success).toBe(false);
+      expect((result as any).error.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("token 为空时验证失败返回 400", async () => {
       const { verifyChallenge } = await import("@/actions/captcha");
       const result = await verifyChallenge({ token: "", solutions: [1] });
 
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("solutions 为空数组时验证失败返回 400", async () => {
@@ -164,7 +164,7 @@ describe("captcha actions", () => {
         solutions: [],
       });
 
-      expect(result.success).toBe(false);
+      expect((result as any).success).toBe(false);
     });
 
     it("cap.redeemChallenge 抛出异常时返回 500", async () => {
@@ -173,8 +173,8 @@ describe("captcha actions", () => {
       const { verifyChallenge } = await import("@/actions/captcha");
       const result = await verifyChallenge(validParams);
 
-      expect(result.success).toBe(false);
-      expect(result.message).toBe("验证验证码失败，请稍后重试");
+      expect((result as any).success).toBe(false);
+      expect((result as any).message).toBe("验证验证码失败，请稍后重试");
     });
   });
 });

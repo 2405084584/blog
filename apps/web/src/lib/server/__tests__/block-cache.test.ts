@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -46,7 +46,7 @@ describe("block-cache", () => {
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
 
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "hero" },
+        block: { id: 1, block: "hero", content: {} },
         pageId: "page-1",
       });
 
@@ -58,7 +58,7 @@ describe("block-cache", () => {
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
 
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "hero" },
+        block: { id: 1, block: "hero", content: {} },
       });
 
       expect(tags).not.toContain(expect.stringContaining("pages/"));
@@ -76,7 +76,7 @@ describe("block-cache", () => {
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
 
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "hero" },
+        block: { id: 1, block: "hero", content: {} },
         pageId: "page-1",
       });
 
@@ -133,7 +133,7 @@ describe("block-cache", () => {
       const { getBlockCacheTags } = await import("@/lib/server/block-cache");
 
       const tags = getBlockCacheTags({
-        block: { id: 1, block: "gallery" },
+        block: { id: 1, block: "gallery", content: {} },
         pageId: "page-1",
       });
 
@@ -290,8 +290,8 @@ describe("block-cache", () => {
       const tags = buildPageCacheTagsForBlocks({
         pageId: "home",
         blocks: [
-          { id: 1, block: "hero" },
-          { id: 2, block: "text" },
+          { id: 1, block: "hero", content: {} },
+          { id: 2, block: "text", content: {} },
         ],
       });
 
@@ -319,7 +319,7 @@ describe("block-cache", () => {
         "@/lib/server/block-cache"
       );
 
-      const block = { id: 1, block: "hero" };
+      const block = { id: 1, block: "hero", content: {} };
       const resolved = { id: 1, block: "hero", resolvedData: {} };
       mockResolveSingleBlock.mockResolvedValueOnce(resolved);
 
@@ -338,7 +338,7 @@ describe("block-cache", () => {
         "@/lib/server/block-cache"
       );
 
-      const block = { id: 1, block: "hero" };
+      const block = { id: 1, block: "hero", content: {} };
       const resolved = { id: 1, block: "hero", resolvedData: {} };
       mockResolveSingleBlock.mockResolvedValueOnce(resolved);
 
@@ -355,7 +355,7 @@ describe("block-cache", () => {
         "@/lib/server/block-cache"
       );
 
-      const block = { id: 1, block: "hero" };
+      const block = { id: 1, block: "hero", content: {} };
       const context = { slug: "test", pageId: "home" };
       mockResolveSingleBlock.mockResolvedValueOnce(block);
 

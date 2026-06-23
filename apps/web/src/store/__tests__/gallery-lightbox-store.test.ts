@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { useGalleryLightboxStore } from "@/store/gallery-lightbox-store";
 
 describe("gallery-lightbox-store", () => {

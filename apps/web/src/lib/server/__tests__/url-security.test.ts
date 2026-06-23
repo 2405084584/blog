@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // vi.hoisted 用于在 vi.mock 工厂之前声明变量
 const { mockLookup } = vi.hoisted(() => {

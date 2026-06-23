@@ -103,12 +103,8 @@ describe("search actions", () => {
   let getCustomWords: typeof import("@/actions/search").getCustomWords;
   let deleteCustomWord: typeof import("@/actions/search").deleteCustomWord;
   let indexPosts: typeof import("@/actions/search").indexPosts;
-  let deleteIndex: typeof import("@/actions/search").deleteIndex;
-  let getIndexStatus: typeof import("@/actions/search").getIndexStatus;
   let searchPosts: typeof import("@/actions/search").searchPosts;
   let searchSite: typeof import("@/actions/search").searchSite;
-  let getPostTokenDetails: typeof import("@/actions/search").getPostTokenDetails;
-  let getSearchIndexStats: typeof import("@/actions/search").getSearchIndexStats;
   let getSearchLogStats: typeof import("@/actions/search").getSearchLogStats;
   let getSearchLogs: typeof import("@/actions/search").getSearchLogs;
 
@@ -125,12 +121,8 @@ describe("search actions", () => {
     getCustomWords = mod.getCustomWords;
     deleteCustomWord = mod.deleteCustomWord;
     indexPosts = mod.indexPosts;
-    deleteIndex = mod.deleteIndex;
-    getIndexStatus = mod.getIndexStatus;
     searchPosts = mod.searchPosts;
     searchSite = mod.searchSite;
-    getPostTokenDetails = mod.getPostTokenDetails;
-    getSearchIndexStats = mod.getSearchIndexStats;
     getSearchLogStats = mod.getSearchLogStats;
     getSearchLogs = mod.getSearchLogs;
   });
@@ -187,7 +179,7 @@ describe("search actions", () => {
         mockAnalyzeText.mockResolvedValue(["测试", "文本"]);
         const result = await testTokenize({ text: "测试文本" });
         expect(result.success).toBe(true);
-        expect(result.data.tokens).toEqual(["测试", "文本"]);
+        expect(result.data!.tokens).toEqual(["测试", "文本"]);
       });
 
       it("编辑可以使用", async () => {
@@ -222,9 +214,9 @@ describe("search actions", () => {
         mockAnalyzeText.mockResolvedValue(["中", "文", "分词"]);
         const result = await testTokenize({ text: "中文分词" });
         expect(result.success).toBe(true);
-        expect(result.data.tokens).toEqual(["中", "文", "分词"]);
-        expect(result.data.count).toBe(3);
-        expect(result.data.text).toBe("中文分词");
+        expect(result.data!.tokens).toEqual(["中", "文", "分词"]);
+        expect(result.data!.count).toBe(3);
+        expect(result.data!.text).toBe("中文分词");
       });
 
       it("应返回执行时间", async () => {
@@ -240,7 +232,7 @@ describe("search actions", () => {
         mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
         const result = await testTokenize({ text: "test" });
         expect(result.success).toBe(true);
-        expect(typeof result.data.duration).toBe("number");
+        expect(typeof result.data!.duration).toBe("number");
       });
     });
 
@@ -360,8 +352,8 @@ describe("search actions", () => {
         mockPrisma.$queryRawUnsafe.mockResolvedValue([]);
         const result = await addCustomWord({ word: "newword" });
         expect(result.success).toBe(true);
-        expect(result.data.word).toBe("newword");
-        expect(result.data.added).toBe(true);
+        expect(result.data!.word).toBe("newword");
+        expect(result.data!.added).toBe(true);
       });
     });
   });
@@ -480,7 +472,7 @@ describe("search actions", () => {
         mockPrisma.customDictionary.delete.mockResolvedValue({});
         const result = await deleteCustomWord({ id: 1 });
         expect(result.success).toBe(true);
-        expect(result.data.deleted).toBe(true);
+        expect(result.data!.deleted).toBe(true);
       });
     });
   });
@@ -553,7 +545,7 @@ describe("search actions", () => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined);
         const result = await indexPosts({});
         expect(result.success).toBe(true);
-        expect(result.data.indexed).toBe(1);
+        expect(result.data!.indexed).toBe(1);
       });
 
       it("指定 slugs 应只索引指定文章", async () => {
@@ -594,7 +586,12 @@ describe("search actions", () => {
     describe("速率限制", () => {
       it("速率限制时应返回失败", async () => {
         mockLimitControl.mockResolvedValue(false);
-        const result = await searchPosts({ query: "test" });
+        const result = await searchPosts({
+          query: "test",
+          page: 1,
+          pageSize: 10,
+          searchIn: "both",
+        });
         expect(result.success).toBe(false);
       });
     });
@@ -602,25 +599,40 @@ describe("search actions", () => {
     describe("业务逻辑", () => {
       it("无分词结果时返回空", async () => {
         mockAnalyzeText.mockResolvedValueOnce([]);
-        const result = await searchPosts({ query: "  " });
+        const result = await searchPosts({
+          query: "  ",
+          page: 1,
+          pageSize: 10,
+          searchIn: "both",
+        });
         expect(result.success).toBe(true);
-        expect(result.data.posts).toHaveLength(0);
+        expect(result.data!.posts).toHaveLength(0);
       });
 
       it("搜索无结果时返回空列表", async () => {
         mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([
           { count: BigInt(0) },
         ]);
-        const result = await searchPosts({ query: "nonexistent" });
+        const result = await searchPosts({
+          query: "nonexistent",
+          page: 1,
+          pageSize: 10,
+          searchIn: "both",
+        });
         expect(result.success).toBe(true);
-        expect(result.data.posts).toHaveLength(0);
+        expect(result.data!.posts).toHaveLength(0);
       });
 
       it("应返回正确的结果结构", async () => {
         mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([
           { count: BigInt(0) },
         ]);
-        const result = await searchPosts({ query: "test" });
+        const result = await searchPosts({
+          query: "test",
+          page: 1,
+          pageSize: 10,
+          searchIn: "both",
+        });
         expect(result.success).toBe(true);
         expect(result.data).toHaveProperty("posts");
       });
@@ -652,7 +664,7 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const mod = await import("@/actions/search");
-      const result = await mod.deleteIndex({});
+      const result = await mod.deleteIndex({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -661,7 +673,7 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const mod = await import("@/actions/search");
-      const result = await mod.getIndexStatus({});
+      const result = await mod.getIndexStatus({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -670,7 +682,7 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const mod = await import("@/actions/search");
-      const result = await mod.getSearchIndexStats({});
+      const result = await mod.getSearchIndexStats({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -679,7 +691,7 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const mod = await import("@/actions/search");
-      const result = await mod.getSearchLogStats({});
+      const result = await mod.getSearchLogStats({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -688,7 +700,7 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const mod = await import("@/actions/search");
-      const result = await mod.getSearchLogs({});
+      const result = await mod.getSearchLogs({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -706,7 +718,7 @@ describe("search actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const mod = await import("@/actions/search");
-      const result = await mod.deleteIndex({});
+      const result = await mod.deleteIndex({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -715,7 +727,7 @@ describe("search actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const mod = await import("@/actions/search");
-      const result = await mod.getIndexStatus({});
+      const result = await mod.getIndexStatus({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -724,7 +736,7 @@ describe("search actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const mod = await import("@/actions/search");
-      const result = await mod.getSearchIndexStats({});
+      const result = await mod.getSearchIndexStats({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -733,7 +745,7 @@ describe("search actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const mod = await import("@/actions/search");
-      const result = await mod.getSearchLogStats({});
+      const result = await mod.getSearchLogStats({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -742,7 +754,7 @@ describe("search actions", () => {
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const mod = await import("@/actions/search");
-      const result = await mod.getSearchLogs({});
+      const result = await mod.getSearchLogs({} as any);
       expect(result.success).toBe(false);
     });
   });
@@ -836,7 +848,12 @@ describe("search actions", () => {
   describe("searchPosts 补充测试", () => {
     it("数据库错误时返回失败", async () => {
       mockPrisma.$queryRawUnsafe.mockRejectedValue(new Error("DB error"));
-      const result = await searchPosts({ query: "test" });
+      const result = await searchPosts({
+        query: "test",
+        page: 1,
+        pageSize: 10,
+        searchIn: "both",
+      });
       expect(result.success).toBe(false);
     });
   });
@@ -885,13 +902,23 @@ describe("search actions", () => {
   describe("searchPosts 分支", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await searchPosts({ query: "test" });
+      const result = await searchPosts({
+        query: "test",
+        page: 1,
+        pageSize: 10,
+        searchIn: "both",
+      });
       expect(result.success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockPrisma.$queryRaw.mockRejectedValue(new Error("DB error"));
-      const result = await searchPosts({ query: "test" });
+      const result = await searchPosts({
+        query: "test",
+        page: 1,
+        pageSize: 10,
+        searchIn: "both",
+      });
       expect(result.success).toBe(false);
     });
   });
@@ -914,9 +941,10 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getSearchLogs({
-        access_token: "token",
         page: 1,
         pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
       });
       expect(result.success).toBe(false);
     });
@@ -925,9 +953,10 @@ describe("search actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockPrisma.searchLog.findMany.mockRejectedValue(new Error("DB error"));
       const result = await getSearchLogs({
-        access_token: "token",
         page: 1,
         pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
       });
       expect(result.success).toBe(false);
     });
@@ -936,14 +965,14 @@ describe("search actions", () => {
   describe("getSearchLogStats 分支", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getSearchLogStats({ access_token: "token" });
+      const result = await getSearchLogStats({ days: 30 });
       expect(result.success).toBe(false);
     });
 
     it("数据库错误时返回失败", async () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockPrisma.searchLog.count.mockRejectedValue(new Error("DB error"));
-      const result = await getSearchLogStats({ access_token: "token" });
+      const result = await getSearchLogStats({ days: 30 });
       expect(result.success).toBe(false);
     });
   });
@@ -952,7 +981,6 @@ describe("search actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getCustomWords({
-        access_token: "token",
         page: 1,
         pageSize: 20,
       });
@@ -965,7 +993,6 @@ describe("search actions", () => {
         new Error("DB error"),
       );
       const result = await getCustomWords({
-        access_token: "token",
         page: 1,
         pageSize: 20,
       });
@@ -980,7 +1007,6 @@ describe("search actions", () => {
         new Error("DB error"),
       );
       const result = await deleteCustomWord({
-        access_token: "token",
         id: 1,
       });
       expect(result.success).toBe(false);

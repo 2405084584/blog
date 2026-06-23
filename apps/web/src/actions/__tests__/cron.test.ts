@@ -133,10 +133,10 @@ vi.mock("next/server", () => ({
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import { authVerify } from "@/lib/server/auth-verify";
-import limitControl from "@/lib/server/rate-limit";
-import prisma from "@/lib/server/prisma";
-import { validateData } from "@/lib/server/validator";
 import { getConfigs } from "@/lib/server/config-cache";
+import prisma from "@/lib/server/prisma";
+import limitControl from "@/lib/server/rate-limit";
+import { validateData } from "@/lib/server/validator";
 
 const mockLimitControl = vi.mocked(limitControl);
 const mockValidateData = vi.mocked(validateData);
@@ -152,7 +152,7 @@ function setupSuccessMocks() {
 }
 
 function setupCronConfig(enabled = true) {
-  mockGetConfigs.mockImplementation(async (keys: string[]) => {
+  (mockGetConfigs as any).mockImplementation(async (keys: string[]) => {
     const map: Record<string, unknown> = {
       "cron.enable": enabled,
       "cron.task.doctor.enable": true,
@@ -263,6 +263,7 @@ describe("cron actions", () => {
       const { triggerCron } = await import("@/actions/cron");
       const result = await triggerCron({
         access_token: "valid-token",
+        triggerType: "MANUAL",
       });
 
       expect(result).toEqual(expect.objectContaining({ success: true }));
@@ -274,7 +275,10 @@ describe("cron actions", () => {
       mockAuthVerify.mockResolvedValue(null as never);
 
       const { triggerCron } = await import("@/actions/cron");
-      const result = await triggerCron({ access_token: "invalid" });
+      const result = await triggerCron({
+        access_token: "invalid",
+        triggerType: "MANUAL",
+      });
 
       expect(result).toEqual(
         expect.objectContaining({ success: false, status: 401 }),
@@ -346,7 +350,7 @@ describe("cron actions", () => {
     it("更新计划任务配置 - 成功路径", async () => {
       setupSuccessMocks();
       setupCronConfig();
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn: never) => {
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
         const tx = {
           config: { upsert: vi.fn().mockResolvedValue({}) },
         };

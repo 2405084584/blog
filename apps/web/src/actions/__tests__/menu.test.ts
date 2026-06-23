@@ -96,7 +96,7 @@ describe("menu actions", () => {
       const result = await getMenusStats(baseParams);
 
       expect(result.success).toBe(true);
-      expect(result.data.total).toEqual({
+      expect(result.data!.total).toEqual({
         total: 10,
         active: 8,
         suspended: 2,
@@ -114,7 +114,7 @@ describe("menu actions", () => {
       const result = await getMenusStats(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {
@@ -179,9 +179,9 @@ describe("menu actions", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
-      expect(result.data[0].id).toBe("menu-1");
-      expect(result.data[0].name).toBe("首页");
-      expect(result.data[0].createdAt).toBe("2025-01-01T00:00:00.000Z");
+      expect(result.data![0]!.id).toBe("menu-1");
+      expect(result.data![0]!.name).toBe("首页");
+      expect(result.data![0]!.createdAt).toBe("2025-01-01T00:00:00.000Z");
     });
 
     it("带搜索条件时构建正确的查询", async () => {
@@ -275,7 +275,7 @@ describe("menu actions", () => {
       const result = await getMenusList(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {
@@ -328,9 +328,9 @@ describe("menu actions", () => {
       const result = await getMenuDetail(baseParams);
 
       expect(result.success).toBe(true);
-      expect(result.data.id).toBe("menu-1");
-      expect(result.data.name).toBe("首页");
-      expect(result.data.page).toEqual({
+      expect(result.data!.id).toBe("menu-1");
+      expect(result.data!.name).toBe("首页");
+      expect(result.data!.page).toEqual({
         id: "page-1",
         slug: "home",
         title: "首页",
@@ -354,7 +354,7 @@ describe("menu actions", () => {
       const result = await getMenuDetail(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {
@@ -404,10 +404,10 @@ describe("menu actions", () => {
       });
 
       const { createMenu } = await import("@/actions/menu");
-      const result = await createMenu(baseParams);
+      const result = await createMenu(baseParams as any);
 
       expect(result.success).toBe(true);
-      expect(result.data.id).toBe("new-id");
+      expect(result.data!.id).toBe("new-id");
       expect(mockPrismaMenu.create).toHaveBeenCalled();
     });
 
@@ -418,7 +418,7 @@ describe("menu actions", () => {
       });
 
       const { createMenu } = await import("@/actions/menu");
-      const result = await createMenu(baseParams);
+      const result = await createMenu(baseParams as any);
 
       expect(result.success).toBe(false);
       expect(result.message).toBe("该路径已被使用");
@@ -429,7 +429,7 @@ describe("menu actions", () => {
       const result = await createMenu({
         access_token: "admin-token",
         name: "无路径菜单",
-      });
+      } as any);
 
       expect(result.success).toBe(false);
       expect(result.message).toBe("slug 和 link 至少需要提供一个");
@@ -448,7 +448,7 @@ describe("menu actions", () => {
         access_token: "admin-token",
         name: "仅链接菜单",
         link: "/only-link",
-      });
+      } as any);
 
       expect(result.success).toBe(true);
       // 不应调用 findUnique 检查 slug
@@ -459,17 +459,17 @@ describe("menu actions", () => {
       mockLimitControl.mockResolvedValue(false);
 
       const { createMenu } = await import("@/actions/menu");
-      const result = await createMenu(baseParams);
+      const result = await createMenu(baseParams as any);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {
       mockAuthVerify.mockResolvedValue(null);
 
       const { createMenu } = await import("@/actions/menu");
-      const result = await createMenu(baseParams);
+      const result = await createMenu(baseParams as any);
 
       expect(result.success).toBe(false);
       expect(result.message).toBe("需要管理员权限");
@@ -480,7 +480,7 @@ describe("menu actions", () => {
       mockPrismaMenu.create.mockRejectedValue(new Error("DB error"));
 
       const { createMenu } = await import("@/actions/menu");
-      const result = await createMenu(baseParams);
+      const result = await createMenu(baseParams as any);
 
       expect(result.success).toBe(false);
       expect(result.message).toBe("创建菜单失败");
@@ -499,7 +499,7 @@ describe("menu actions", () => {
         access_token: "admin-token",
         name: "默认菜单",
         link: "/default",
-      });
+      } as any);
 
       expect(mockPrismaMenu.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -549,7 +549,7 @@ describe("menu actions", () => {
       const result = await updateMenu(baseParams);
 
       expect(result.success).toBe(true);
-      expect(result.data.id).toBe("menu-1");
+      expect(result.data!.id).toBe("menu-1");
       expect(mockPrismaMenu.update).toHaveBeenCalled();
     });
 
@@ -607,7 +607,7 @@ describe("menu actions", () => {
       const result = await updateMenu(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {
@@ -666,7 +666,7 @@ describe("menu actions", () => {
       const result = await updateMenus(baseParams);
 
       expect(result.success).toBe(true);
-      expect(result.data.updated).toBe(2);
+      expect(result.data!.updated).toBe(2);
       expect(mockPrismaMenu.updateMany).toHaveBeenCalledWith({
         where: { id: { in: ["menu-1", "menu-2"] } },
         data: { status: "ACTIVE" },
@@ -708,7 +708,7 @@ describe("menu actions", () => {
       const result = await updateMenus(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {
@@ -752,7 +752,7 @@ describe("menu actions", () => {
       const result = await deleteMenus(baseParams);
 
       expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(2);
+      expect(result.data!.deleted).toBe(2);
       expect(mockPrismaMenu.deleteMany).toHaveBeenCalledWith({
         where: { id: { in: ["menu-1", "menu-2"] } },
       });
@@ -791,7 +791,7 @@ describe("menu actions", () => {
       const result = await deleteMenus(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe("TOO_MANY_REQUESTS");
+      expect(result.error!.code).toBe("TOO_MANY_REQUESTS");
     });
 
     it("非管理员用户返回 401", async () => {

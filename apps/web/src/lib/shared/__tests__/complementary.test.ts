@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { generateComplementary } from "@/lib/shared/complementary";
 
 describe("complementary", () => {

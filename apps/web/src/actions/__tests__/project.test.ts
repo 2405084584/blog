@@ -115,7 +115,11 @@ describe("project actions", () => {
   describe("getProjectsTrends", () => {
     it("非管理员/编辑/作者应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
-      const result = await getProjectsTrends({ access_token: "token" });
+      const result = await getProjectsTrends({
+        access_token: "token",
+        days: 30,
+        count: 30,
+      });
       expect(result.success).toBe(false);
     });
 
@@ -130,7 +134,7 @@ describe("project actions", () => {
         count: 3,
       });
       expect(result.success).toBe(true);
-      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data!.length).toBeGreaterThan(0);
     });
   });
 
@@ -139,13 +143,25 @@ describe("project actions", () => {
   describe("getProjectsList", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getProjectsList({ access_token: "token" });
+      const result = await getProjectsList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
     it("非管理员/编辑/作者应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
-      const result = await getProjectsList({ access_token: "token" });
+      const result = await getProjectsList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
@@ -184,10 +200,16 @@ describe("project actions", () => {
         },
       ]);
 
-      const result = await getProjectsList({ access_token: "token" });
+      const result = await getProjectsList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].title).toBe("Test Project");
+      expect(result.data![0]!.title).toBe("Test Project");
     });
   });
 
@@ -262,7 +284,7 @@ describe("project actions", () => {
         slug: "test",
       });
       expect(result.success).toBe(true);
-      expect(result.data.title).toBe("Test");
+      expect(result.data!.title).toBe("Test");
     });
   });
 
@@ -277,7 +299,7 @@ describe("project actions", () => {
         access_token: "token",
         title: "New",
         slug: "existing",
-      });
+      } as any);
       expect(result.success).toBe(false);
     });
 
@@ -303,9 +325,9 @@ describe("project actions", () => {
         access_token: "token",
         title: "New Project",
         description: "A new project",
-      });
+      } as any);
       expect(result.success).toBe(true);
-      expect(result.data.id).toBe(1);
+      expect(result.data!.id).toBe(1);
     });
   });
 
@@ -322,7 +344,7 @@ describe("project actions", () => {
         ids: [1, 2],
       });
       expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(0);
+      expect(result.data!.deleted).toBe(0);
     });
 
     it("成功删除项目", async () => {
@@ -341,7 +363,7 @@ describe("project actions", () => {
 
       const result = await deleteProjects({ access_token: "token", ids: [1] });
       expect(result.success).toBe(true);
-      expect(result.data.deleted).toBe(1);
+      expect(result.data!.deleted).toBe(1);
     });
 
     it("速率限制时应返回 429", async () => {
@@ -356,13 +378,25 @@ describe("project actions", () => {
   describe("getProjectsList 补充测试", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getProjectsList({ access_token: "token", page: 1 });
+      const result = await getProjectsList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
 
     it("非管理员应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
-      const result = await getProjectsList({ access_token: "token", page: 1 });
+      const result = await getProjectsList({
+        access_token: "token",
+        page: 1,
+        pageSize: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
       expect(result.success).toBe(false);
     });
   });
@@ -373,7 +407,7 @@ describe("project actions", () => {
       const result = await createProject({
         access_token: "token",
         title: "New Project",
-      });
+      } as any);
       expect(result.success).toBe(false);
     });
 
@@ -382,7 +416,7 @@ describe("project actions", () => {
       const result = await createProject({
         access_token: "token",
         title: "New Project",
-      });
+      } as any);
       expect(result.success).toBe(false);
     });
   });
@@ -410,7 +444,11 @@ describe("project actions", () => {
   describe("getProjectsTrends 补充测试", () => {
     it("速率限制时应返回 429", async () => {
       mockLimitControl.mockResolvedValue(false);
-      const result = await getProjectsTrends({ access_token: "token" });
+      const result = await getProjectsTrends({
+        access_token: "token",
+        days: 30,
+        count: 30,
+      });
       expect(result.success).toBe(false);
     });
   });
@@ -421,7 +459,7 @@ describe("project actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateProject(
-        { access_token: "token", id: 1, title: "更新" },
+        { access_token: "token", slug: "test", title: "更新" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -430,7 +468,7 @@ describe("project actions", () => {
     it("非管理员/编辑/作者应返回未授权", async () => {
       mockAuthVerify.mockResolvedValue(null);
       const result = await updateProject(
-        { access_token: "token", id: 1, title: "更新" },
+        { access_token: "token", slug: "test", title: "更新" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -440,7 +478,7 @@ describe("project actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockPrisma.project.findUnique.mockResolvedValue(null);
       const result = await updateProject(
-        { access_token: "token", id: 999, title: "更新" },
+        { access_token: "token", slug: "nonexistent", title: "更新" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -454,7 +492,7 @@ describe("project actions", () => {
         slug: "test",
       });
       const result = await updateProject(
-        { access_token: "token", id: 1, title: "更新" },
+        { access_token: "token", slug: "test", title: "更新" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -473,7 +511,7 @@ describe("project actions", () => {
         title: "更新后的项目",
       });
       const result = await updateProject(
-        { access_token: "token", id: 1, slug: "test", title: "更新后的项目" },
+        { access_token: "token", slug: "test", title: "更新后的项目" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -569,8 +607,12 @@ describe("project actions", () => {
       vi.mocked(runProjectsGithubSync).mockResolvedValue({
         synced: 3,
         failed: 0,
-        results: [{ id: 1 }, { id: 2 }, { id: 3 }],
-      });
+        results: [
+          { id: 1, slug: "a", success: true },
+          { id: 2, slug: "b", success: true },
+          { id: 3, slug: "c", success: true },
+        ],
+      } as any);
       const result = await syncProjectsGithub(
         { access_token: "token" },
         { environment: "serveraction" },
@@ -585,7 +627,13 @@ describe("project actions", () => {
       mockPrisma.project.findMany.mockResolvedValue([]);
       mockPrisma.project.count.mockResolvedValue(0);
       const result = await getProjectsList(
-        { access_token: "token", page: 1, pageSize: 20 },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -596,7 +644,14 @@ describe("project actions", () => {
       mockPrisma.project.findMany.mockResolvedValue([]);
       mockPrisma.project.count.mockResolvedValue(0);
       const result = await getProjectsList(
-        { access_token: "token", page: 1, pageSize: 20, search: "test" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+          search: "test",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -606,7 +661,13 @@ describe("project actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockPrisma.project.findMany.mockRejectedValue(new Error("DB error"));
       const result = await getProjectsList(
-        { access_token: "token", page: 1, pageSize: 20 },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 20,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -623,7 +684,7 @@ describe("project actions", () => {
           title: "Test",
           content: "Content",
           status: "DRAFT",
-        },
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -635,7 +696,7 @@ describe("project actions", () => {
       mockAuthVerify.mockResolvedValue({ uid: 1, role: "ADMIN" });
       mockPrisma.project.findUnique.mockRejectedValue(new Error("DB error"));
       const result = await updateProject(
-        { access_token: "token", id: 1, title: "Updated" },
+        { access_token: "token", slug: "test", title: "Updated" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);

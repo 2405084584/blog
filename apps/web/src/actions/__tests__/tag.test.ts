@@ -88,13 +88,13 @@ vi.mock("@/lib/server/post-access", () => ({
 // ============================================================================
 
 import {
-  getTagsList,
-  getTagDetail,
   createTag,
-  updateTag,
   deleteTags,
-  searchTags,
+  getTagDetail,
   getTagsDistribution,
+  getTagsList,
+  searchTags,
+  updateTag,
 } from "@/actions/tag";
 
 // ============================================================================
@@ -115,7 +115,7 @@ const TAG_RECORD = {
   mediaRefs: [],
 };
 
-function mockAuthSuccess(user = ADMIN_USER) {
+function mockAuthSuccess(user: any = ADMIN_USER) {
   mockAuthVerify.mockResolvedValue(user);
 }
 
@@ -158,7 +158,13 @@ describe("tag actions", () => {
       mockPrismaTagCount.mockResolvedValue(1);
 
       const result = await getTagsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
         { environment: "serveraction" },
       );
 
@@ -171,7 +177,13 @@ describe("tag actions", () => {
       mockLimitControl.mockResolvedValue(false);
 
       const result = await getTagsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
 
@@ -182,7 +194,13 @@ describe("tag actions", () => {
       mockAuthFailure();
 
       const result = await getTagsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
 
@@ -193,7 +211,13 @@ describe("tag actions", () => {
       mockAuthFailure();
 
       const result = await getTagsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
 
@@ -372,7 +396,14 @@ describe("tag actions", () => {
       ]);
 
       const result = await searchTags(
-        { access_token: "token", query: "test" },
+        {
+          access_token: "token",
+          query: "test",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
 
@@ -388,7 +419,14 @@ describe("tag actions", () => {
       ]);
 
       const result = await searchTags(
-        { access_token: "token", query: "test" },
+        {
+          access_token: "token",
+          query: "test",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
 
@@ -410,7 +448,7 @@ describe("tag actions", () => {
       ]);
 
       const result = await getTagsDistribution(
-        { access_token: "token" },
+        { access_token: "token" } as any,
         { environment: "serveraction" },
       );
 
@@ -426,7 +464,13 @@ describe("tag actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getTagsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -468,7 +512,7 @@ describe("tag actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await updateTag(
-        { access_token: "token", slug: "test", name: "Updated" },
+        { access_token: "token", slug: "test", name: "Updated" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -490,7 +534,14 @@ describe("tag actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await searchTags(
-        { access_token: "token", query: "test" },
+        {
+          access_token: "token",
+          query: "test",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -501,7 +552,7 @@ describe("tag actions", () => {
     it("速率限制时应返回失败", async () => {
       mockLimitControl.mockResolvedValue(false);
       const result = await getTagsDistribution(
-        { access_token: "token" },
+        { access_token: "token" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -516,7 +567,14 @@ describe("tag actions", () => {
       mockPrismaTagFindMany.mockResolvedValue([]);
       mockPrismaTagCount.mockResolvedValue(0);
       const result = await getTagsList(
-        { access_token: "token", search: "test" },
+        {
+          access_token: "token",
+          search: "test",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -526,7 +584,13 @@ describe("tag actions", () => {
       mockAuthSuccess();
       mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getTagsList(
-        { access_token: "token" },
+        {
+          access_token: "token",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -538,7 +602,14 @@ describe("tag actions", () => {
       mockAuthSuccess();
       mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
       const result = await searchTags(
-        { access_token: "token", query: "test" },
+        {
+          access_token: "token",
+          query: "test",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -548,7 +619,14 @@ describe("tag actions", () => {
       mockAuthSuccess();
       mockPrismaTagFindMany.mockResolvedValue([]);
       const result = await searchTags(
-        { access_token: "token", query: "nonexistent" },
+        {
+          access_token: "token",
+          query: "nonexistent",
+          page: 1,
+          pageSize: 10,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(true);
@@ -560,7 +638,7 @@ describe("tag actions", () => {
       mockAuthSuccess();
       mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
       const result = await getTagsDistribution(
-        { access_token: "token" },
+        { access_token: "token" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -584,7 +662,7 @@ describe("tag actions", () => {
       mockAuthSuccess();
       mockPrismaTagFindUnique.mockRejectedValue(new Error("DB error"));
       const result = await updateTag(
-        { access_token: "token", id: 1, name: "Updated" },
+        { access_token: "token", id: 1, name: "Updated" } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);
@@ -596,7 +674,7 @@ describe("tag actions", () => {
       mockAuthSuccess();
       mockPrismaTagFindMany.mockRejectedValue(new Error("DB error"));
       const result = await deleteTags(
-        { access_token: "token", ids: [1] },
+        { access_token: "token", ids: [1] } as any,
         { environment: "serveraction" },
       );
       expect(result.success).toBe(false);

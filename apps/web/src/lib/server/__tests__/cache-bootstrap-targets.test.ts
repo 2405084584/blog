@@ -1,9 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
 // Mock prisma
-const mockFindMany = vi.fn();
+const _mockFindMany = vi.fn();
 vi.mock("@/lib/server/prisma", () => ({
   default: {
     config: { findMany: vi.fn().mockResolvedValue([]) },

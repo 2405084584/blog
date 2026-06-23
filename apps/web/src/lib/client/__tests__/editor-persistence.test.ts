@@ -7,7 +7,7 @@ import {
   loadEditorContent,
   saveEditorContent,
   scheduleEditorContentSave,
-} from "../editor-persistence";
+} from "@/lib/client/editor-persistence";
 
 describe("editor-persistence", () => {
   beforeEach(() => {
@@ -66,8 +66,8 @@ describe("editor-persistence", () => {
 
       const all = loadAllEditorContent();
       expect(all).not.toBeNull();
-      expect(all!["key-a"].content).toBe("a");
-      expect(all!["key-b"].content).toBe("b");
+      expect(all!["key-a"]!.content).toBe("a");
+      expect(all!["key-b"]!.content).toBe("b");
     });
 
     it("无数据时应返回 null", () => {

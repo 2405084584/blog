@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // 模拟 @cap.js/widget - 使用 class 作为构造函数
 const mockAddEventListener = vi.fn();
@@ -34,7 +34,7 @@ describe("useCaptcha", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // 清理 window 上的 CAP_CUSTOM_FETCH
-    delete (window as Record<string, unknown>).CAP_CUSTOM_FETCH;
+    delete (window as unknown as Record<string, unknown>).CAP_CUSTOM_FETCH;
   });
 
   it("返回 solve、reset 和 isReady", async () => {
@@ -123,7 +123,7 @@ describe("useCaptcha", () => {
 describe("useCaptcha CAP_CUSTOM_FETCH 设置", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete (window as Record<string, unknown>).CAP_CUSTOM_FETCH;
+    delete (window as unknown as Record<string, unknown>).CAP_CUSTOM_FETCH;
   });
 
   it("设置 window.CAP_CUSTOM_FETCH", async () => {
@@ -140,7 +140,8 @@ describe("useCaptcha CAP_CUSTOM_FETCH 设置", () => {
 
     renderHook(() => useCaptcha());
 
-    const fetchFn = (window as Record<string, unknown>).CAP_CUSTOM_FETCH as (
+    const fetchFn = (window as unknown as Record<string, unknown>)
+      .CAP_CUSTOM_FETCH as (
       url: string,
       options?: Record<string, unknown>,
     ) => Promise<Response>;
@@ -159,7 +160,8 @@ describe("useCaptcha CAP_CUSTOM_FETCH 设置", () => {
 
     renderHook(() => useCaptcha());
 
-    const fetchFn = (window as Record<string, unknown>).CAP_CUSTOM_FETCH as (
+    const fetchFn = (window as unknown as Record<string, unknown>)
+      .CAP_CUSTOM_FETCH as (
       url: string,
       options?: Record<string, unknown>,
     ) => Promise<Response>;
@@ -179,7 +181,8 @@ describe("useCaptcha CAP_CUSTOM_FETCH 设置", () => {
 
     renderHook(() => useCaptcha());
 
-    const fetchFn = (window as Record<string, unknown>).CAP_CUSTOM_FETCH as (
+    const fetchFn = (window as unknown as Record<string, unknown>)
+      .CAP_CUSTOM_FETCH as (
       url: string,
       options?: Record<string, unknown>,
     ) => Promise<Response>;
@@ -200,7 +203,8 @@ describe("useCaptcha CAP_CUSTOM_FETCH 设置", () => {
 
     renderHook(() => useCaptcha());
 
-    const fetchFn = (window as Record<string, unknown>).CAP_CUSTOM_FETCH as (
+    const fetchFn = (window as unknown as Record<string, unknown>)
+      .CAP_CUSTOM_FETCH as (
       url: string,
       options?: Record<string, unknown>,
     ) => Promise<Response>;

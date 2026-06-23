@@ -1,9 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
 // Mock prisma - 设置大量 mock 来覆盖导出/导入函数
-const mockPrismaModels: Record<string, any> = {};
+const _mockPrismaModels: Record<string, any> = {};
 function createMockModel() {
   return {
     findMany: vi.fn().mockResolvedValue([]),
@@ -60,7 +60,7 @@ vi.mock("@/lib/server/prisma", () => {
   const prisma: Record<string, any> = {
     $transaction: vi
       .fn()
-      .mockImplementation(async (fn: Function) => fn(prisma)),
+      .mockImplementation(async (fn: (...args: any[]) => any) => fn(prisma)),
     $queryRaw: vi.fn().mockResolvedValue([]),
     $queryRawUnsafe: vi.fn().mockResolvedValue([]),
     $executeRawUnsafe: vi.fn().mockResolvedValue(0),
@@ -76,12 +76,10 @@ vi.mock("@/lib/server/prisma", () => {
 // Mock oss
 vi.mock("@/lib/server/oss", () => ({
   buildObjectKey: vi.fn().mockReturnValue("temp/backups/test.json"),
-  uploadObject: vi
-    .fn()
-    .mockResolvedValue({
-      url: "https://example.com/test.json",
-      key: "test.json",
-    }),
+  uploadObject: vi.fn().mockResolvedValue({
+    url: "https://example.com/test.json",
+    key: "test.json",
+  }),
 }));
 
 // Mock post-access

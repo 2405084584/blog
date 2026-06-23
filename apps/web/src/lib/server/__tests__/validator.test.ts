@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 // Mock NextResponse before importing the module
@@ -20,10 +20,10 @@ vi.mock("next/server", () => {
 });
 
 import {
+  validate,
   validateData,
   validateRequestData,
   validateSearchParams,
-  validate,
 } from "@/lib/server/validator";
 
 // ============================================================================
@@ -91,7 +91,7 @@ describe("validator utilities", () => {
         nestedSchema,
       );
       expect(result).toBeDefined();
-      expect(result!.error.details!.errors[0].field).toBe("user.profile.bio");
+      expect(result!.error.details!.errors[0]!.field).toBe("user.profile.bio");
     });
 
     it("handles array schema validation", () => {
@@ -133,7 +133,7 @@ describe("validator utilities", () => {
       expect(result).toBeDefined();
       const errors = result!.error.details!.errors;
       expect(errors).toHaveLength(1);
-      expect(errors[0].field).toBe("email");
+      expect(errors[0]!.field).toBe("email");
     });
 
     it("多个字段错误时全部报告", () => {
@@ -210,7 +210,7 @@ describe("validator utilities", () => {
         }),
       });
       const result = validateData({ a: { b: { c: "" } } }, deepSchema);
-      expect(result!.error.details!.errors[0].field).toBe("a.b.c");
+      expect(result!.error.details!.errors[0]!.field).toBe("a.b.c");
     });
 
     it("数组元素的字段路径包含索引", () => {
@@ -219,7 +219,7 @@ describe("validator utilities", () => {
       });
       const result = validateData({ tags: ["ok", "", "ok"] }, arraySchema);
       expect(result).toBeDefined();
-      expect(result!.error.details!.errors[0].field).toBe("tags.1");
+      expect(result!.error.details!.errors[0]!.field).toBe("tags.1");
     });
   });
 
@@ -233,7 +233,10 @@ describe("validator utilities", () => {
     });
 
     it("验证成功时返回数据", () => {
-      const result = validateRequestData({ title: "test", count: 5 }, schema);
+      const result = validateRequestData(
+        { title: "test", count: 5 },
+        schema,
+      ) as any;
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual({ title: "test", count: 5 });
@@ -241,7 +244,10 @@ describe("validator utilities", () => {
     });
 
     it("验证失败时返回 NextResponse 对象（带 body 和 status）", () => {
-      const result = validateRequestData({ title: "", count: -1 }, schema);
+      const result = validateRequestData(
+        { title: "", count: -1 },
+        schema,
+      ) as any;
       expect(result.success).toBeUndefined();
       const res = result as any;
       expect(res.status).toBe(400);
@@ -289,7 +295,7 @@ describe("validator utilities", () => {
 
     it("验证成功的搜索参数", () => {
       const params = new URLSearchParams("page=1&keyword=test");
-      const result = validateSearchParams(params, schema);
+      const result = validateSearchParams(params, schema) as any;
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.page).toBe(1);
@@ -299,7 +305,7 @@ describe("validator utilities", () => {
 
     it("单个参数验证成功", () => {
       const params = new URLSearchParams("page=5");
-      const result = validateSearchParams(params, schema);
+      const result = validateSearchParams(params, schema) as any;
       expect(result.success).toBe(true);
     });
 
@@ -322,7 +328,7 @@ describe("validator utilities", () => {
         tags: z.array(z.string()),
       });
       const params = new URLSearchParams("tags=a&tags=b&tags=c");
-      const result = validateSearchParams(params, arraySchema);
+      const result = validateSearchParams(params, arraySchema) as any;
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.tags).toEqual(["a", "b", "c"]);
@@ -334,7 +340,7 @@ describe("validator utilities", () => {
         name: z.string(),
       });
       const params = new URLSearchParams("name=test");
-      const result = validateSearchParams(params, schema);
+      const result = validateSearchParams(params, schema) as any;
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.name).toBe("test");
@@ -351,7 +357,7 @@ describe("validator utilities", () => {
     });
 
     it("验证成功返回数据", () => {
-      const result = validate({ id: 1 }, schema);
+      const result = validate({ id: 1 }, schema) as any;
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.id).toBe(1);

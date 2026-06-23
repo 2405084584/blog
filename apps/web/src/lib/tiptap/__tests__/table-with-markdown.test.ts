@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  TableCellWithMarkdown,
   TableHeaderWithMarkdown,
   TableRowWithMarkdown,
   TableWithMarkdown,
-  TableCellWithMarkdown,
-} from "../table-with-markdown";
+} from "@/lib/tiptap/table-with-markdown";
 
 function getRenderMarkdown(ext: { config?: Record<string, unknown> }) {
   return ext.config?.renderMarkdown as (
@@ -22,7 +22,7 @@ describe("table-with-markdown", () => {
 
     describe("renderMarkdown", () => {
       it("空表格应返回空字符串", () => {
-        const renderMarkdown = getRenderMarkdown(TableWithMarkdown);
+        const renderMarkdown = getRenderMarkdown(TableWithMarkdown as any);
         expect(renderMarkdown).toBeDefined();
 
         const mockHelpers = { renderChildren: vi.fn(() => "") };
@@ -30,13 +30,13 @@ describe("table-with-markdown", () => {
       });
 
       it("无 content 应返回空字符串", () => {
-        const renderMarkdown = getRenderMarkdown(TableWithMarkdown);
+        const renderMarkdown = getRenderMarkdown(TableWithMarkdown as any);
         const mockHelpers = { renderChildren: vi.fn(() => "") };
         expect(renderMarkdown({}, mockHelpers)).toBe("");
       });
 
       it("应正确渲染基本表格", () => {
-        const renderMarkdown = getRenderMarkdown(TableWithMarkdown);
+        const renderMarkdown = getRenderMarkdown(TableWithMarkdown as any);
         const cellTexts = ["A", "B", "C", "D"];
         let callIndex = 0;
         const mockHelpers = {
@@ -72,7 +72,7 @@ describe("table-with-markdown", () => {
       });
 
       it("应为居中对齐列生成 :------: 分隔符", () => {
-        const renderMarkdown = getRenderMarkdown(TableWithMarkdown);
+        const renderMarkdown = getRenderMarkdown(TableWithMarkdown as any);
         let callIndex = 0;
         const mockHelpers = {
           renderChildren: vi.fn(
@@ -103,7 +103,7 @@ describe("table-with-markdown", () => {
       });
 
       it("应为右对齐列生成 -------: 分隔符", () => {
-        const renderMarkdown = getRenderMarkdown(TableWithMarkdown);
+        const renderMarkdown = getRenderMarkdown(TableWithMarkdown as any);
         let callIndex = 0;
         const mockHelpers = {
           renderChildren: vi.fn(
@@ -134,7 +134,7 @@ describe("table-with-markdown", () => {
       });
 
       it("空单元格应渲染为空格", () => {
-        const renderMarkdown = getRenderMarkdown(TableWithMarkdown);
+        const renderMarkdown = getRenderMarkdown(TableWithMarkdown as any);
         const mockHelpers = {
           renderChildren: vi.fn(() => ""),
         };
